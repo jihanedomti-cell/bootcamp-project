@@ -68,6 +68,8 @@
   .btn-ghost { background: transparent; color: var(--text-muted); border: none; padding: 8px 12px; font-size: 14px; font-weight: 500; }
   .btn-ghost:hover { color: var(--dark); }
   .btn-sm { padding: 9px 18px; font-size: 13px; }
+  .btn-danger { background: transparent; color: var(--error); border: 1.5px solid var(--error); border-radius: 6px; padding: 9px 16px; font-size: 13px; font-weight: 600; }
+  .btn-danger:hover { background: var(--error); color: #fff; }
 
   /* Cartes */
   .card { background: var(--white); border: 1.5px solid var(--border); border-radius: 12px; padding: 28px; transition: all 0.2s ease; position: relative; }
@@ -474,7 +476,10 @@
       <div id="dash-brand" style="display:none">
         <div class="row" style="justify-content:space-between">
           <div class="row"><span class="brand-color-dot" id="cur-color" style="width:18px;height:18px"></span><h2 id="cur-name"></h2></div>
-          <span class="badge" id="cur-sector"></span>
+          <div class="row">
+            <span class="badge" id="cur-sector"></span>
+            <button class="btn-danger" onclick="deleteBrand()">Supprimer</button>
+          </div>
         </div>
 
         <!-- TAB: Brand Memory -->
@@ -738,6 +743,18 @@ function renderBrand(){
   renderMemory();
   showPanel('memory');
   setNavActive(document.getElementById('nav-memory'));
+}
+async function deleteBrand(){
+  const b=state.selectedBrand; if(!b) return;
+  if(!confirm(`Supprimer définitivement la marque « ${b.nom} » et tous ses contenus générés ?\n\nCette action est irréversible.`)) return;
+  loader(true,'Suppression de la marque...');
+  const { error }=await db.from('brands').delete().eq('id',b.id);
+  loader(false);
+  if(error){ showToast('Erreur : '+error.message,'err'); return; }
+  state.brands=state.brands.filter(x=>x.id!==b.id);
+  state.selectedBrand=null; state.currentChannel=null; state.selectedFormat=null; state.lastGen=null;
+  renderDashboard();
+  showToast('Marque supprimée ✓','ok');
 }
 function renderMemory(){
   const m=state.selectedBrand.brand_memory||{};
