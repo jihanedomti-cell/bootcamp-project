@@ -123,5 +123,29 @@ create policy "brand_docs_delete" on storage.objects for delete to authenticated
   using (bucket_id = 'brand-documents' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- =====================================================================
+--  ESPACE ADMIN : autoriser un compte à lire prospects + inscrits
+-- =====================================================================
+alter table public.profiles add column if not exists is_admin boolean not null default false;
+
+-- Fonction SECURITY DEFINER (évite la récursion RLS sur profiles)
+create or replace function public.is_admin()
+returns boolean language sql security definer stable set search_path = public as $$
+  select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
+$$;
+
+-- Les admins peuvent lire tous les leads et tous les profils
+drop policy if exists "leads_select_admin" on public.leads;
+create policy "leads_select_admin" on public.leads for select
+  to authenticated using (public.is_admin());
+
+drop policy if exists "profiles_select_admin" on public.profiles;
+create policy "profiles_select_admin" on public.profiles for select
+  to authenticated using (public.is_admin());
+
+-- 👉 REMPLACEZ l'email ci-dessous par celui avec lequel VOUS vous êtes inscrite,
+--    puis exécutez. (Le compte doit déjà exister : inscrivez-vous d'abord dans l'app.)
+update public.profiles set is_admin = true where email = 'VOTRE_EMAIL_ICI';
+
+-- =====================================================================
 --  Terminé. Vous devriez voir "Success. No rows returned".
 -- =====================================================================

@@ -179,6 +179,11 @@
   .format-pill { padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; border: 1.5px solid var(--border); color: var(--text-muted); background: var(--white); cursor: pointer; transition: all 0.2s; }
   .format-pill:hover { border-color: var(--peach); color: var(--dark); background: var(--peach-light); }
   .format-pill.active { background: var(--peach-light); color: #7A3020; border-color: var(--peach); font-weight: 600; }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--white); border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .admin-table th, .admin-table td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .admin-table th { background: var(--yellow-light); color: #7A6500; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table td { color: var(--text-main); }
 
   /* Onglets (style canal Positano) */
   .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 26px; }
@@ -439,6 +444,11 @@
 
         <div class="side-label">Planning</div>
         <a class="brand-item" id="nav-calendar" onclick="navTo('calendar',this)"><span>▦</span><span>Calendrier éditorial</span></a>
+
+        <div id="admin-nav-wrap" style="display:none">
+          <div class="side-label">Admin</div>
+          <a class="brand-item" id="nav-admin" onclick="navAdmin(this)"><span>★</span><span>Prospects &amp; inscrits</span></a>
+        </div>
       </nav>
 
       <div class="side-sep"></div>
@@ -504,6 +514,16 @@
           <button class="btn-primary" onclick="doCalendar()">Générer le calendrier</button>
           <div id="cal-results" class="cal-grid"></div>
         </div>
+      </div>
+
+      <!-- Espace admin (visible uniquement par les administrateurs) -->
+      <div id="panel-admin" style="display:none">
+        <h2 style="margin-bottom:4px">Espace admin</h2>
+        <p class="small" style="margin-bottom:24px">Vue privée — visible uniquement par les administrateurs.</p>
+        <h3 style="margin-bottom:10px">Prospects (landing) <span class="badge" id="admin-leads-count">0</span></h3>
+        <div id="admin-leads" style="overflow-x:auto"></div>
+        <h3 style="margin:28px 0 10px">Comptes créés <span class="badge" id="admin-users-count">0</span></h3>
+        <div id="admin-users" style="overflow-x:auto"></div>
       </div>
     </main>
   </div>
@@ -699,8 +719,11 @@ function renderDashboard(){
     el.onclick=()=>selectBrand(b.id);
     list.appendChild(el);
   });
+  // Item Admin (visible uniquement pour les admins)
+  document.getElementById('admin-nav-wrap').style.display = state.profile?.is_admin ? 'block' : 'none';
   // Zone centrale
   const hasSel=!!state.selectedBrand;
+  document.getElementById('panel-admin').style.display='none';
   document.getElementById('dash-empty').style.display=hasSel?'none':'flex';
   document.getElementById('dash-brand').style.display=hasSel?'block':'none';
   if(hasSel) renderBrand();
@@ -746,12 +769,18 @@ function setNavActive(el){
   document.querySelectorAll('#dash-side-nav .brand-item').forEach(a=>a.classList.remove('active'));
   if(el) el.classList.add('active');
 }
+function exitAdmin(){
+  document.getElementById('panel-admin').style.display='none';
+  document.getElementById('dash-brand').style.display='block';
+}
 function navTo(name,el){
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
+  exitAdmin();
   setNavActive(el); showPanel(name);
 }
 function navChannel(channel,el){
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
+  exitAdmin();
   setNavActive(el);
   state.currentChannel=channel;
   showPanel('generate');
@@ -777,6 +806,41 @@ function selectFormat(f,el){
   state.selectedFormat=f;
   document.querySelectorAll('#gen-formats .format-pill').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
+}
+
+/* ---- Espace admin : prospects (leads) + inscrits (profiles) ---- */
+async function navAdmin(el){
+  setNavActive(el);
+  document.getElementById('dash-empty').style.display='none';
+  document.getElementById('dash-brand').style.display='none';
+  document.getElementById('panel-admin').style.display='block';
+  await loadAdminData();
+}
+async function loadAdminData(){
+  loader(true,'Chargement des données admin...');
+  const r1=await db.from('leads').select('*').order('created_at',{ascending:false});
+  const r2=await db.from('profiles').select('*').order('created_at',{ascending:false});
+  loader(false);
+  if(r1.error || r2.error){ showToast('Accès admin refusé — avez-vous exécuté le SQL admin dans Supabase ?','err'); }
+  const leads=r1.data||[], users=r2.data||[];
+  renderAdminTable('admin-leads', leads, ['created_at','prenom','email','plan_interesse','source'], ['Date','Prénom','Email','Plan','Source']);
+  document.getElementById('admin-leads-count').textContent=leads.length;
+  renderAdminTable('admin-users', users, ['created_at','prenom','email','plan'], ['Date','Prénom','Email','Plan']);
+  document.getElementById('admin-users-count').textContent=users.length;
+}
+function renderAdminTable(id, rows, keys, headers){
+  const box=document.getElementById(id);
+  if(!rows.length){ box.innerHTML='<p class="small">Aucune donnée pour l\'instant.</p>'; return; }
+  let html='<table class="admin-table"><thead><tr>'+headers.map(h=>`<th>${escapeHtml(h)}</th>`).join('')+'</tr></thead><tbody>';
+  rows.forEach(r=>{
+    html+='<tr>'+keys.map(k=>{
+      let v=r[k];
+      if(k==='created_at' && v){ try{ v=new Date(v).toLocaleDateString('fr-FR'); }catch(e){} }
+      return `<td>${escapeHtml(v==null||v===''?'—':v)}</td>`;
+    }).join('')+'</tr>';
+  });
+  html+='</tbody></table>';
+  box.innerHTML=html;
 }
 
 /* ---- Brand Memory : modifier / re-analyser ---- */
