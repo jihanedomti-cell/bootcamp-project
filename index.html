@@ -180,6 +180,18 @@
   .stepper .s { flex: 1; height: 4px; border-radius: 2px; background: var(--border); }
   .stepper .s.done { background: var(--accent); }
   .demo-banner { background: rgba(124,92,252,.12); border: 1px solid var(--accent); color: #c9bcff; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+
+  /* Drag & drop upload */
+  .dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 38px 20px; text-align: center; cursor: pointer; transition: all 200ms ease; margin: 16px 0; }
+  .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--bg-hover); }
+  .dropzone .up-icon { font-size: 30px; margin-bottom: 8px; }
+  .file-row { display: flex; align-items: center; gap: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }
+  .file-row .meta { flex: 1; min-width: 0; }
+  .file-row .meta > div:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-row .bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .file-row .bar > div { height: 100%; background: var(--accent); width: 0; transition: width 250ms ease; }
+  .file-row .del { cursor: pointer; color: var(--text-2); padding: 0 4px; }
+  .file-row .del:hover { color: var(--error); }
 </style>
 </head>
 <body>
@@ -409,13 +421,21 @@
 
     <!-- Étape 2 -->
     <div id="be-step-2" style="display:none">
-      <h2>Nourrir la Brand Memory</h2>
+      <h2>Upload des documents de la marque</h2>
       <p class="small" style="margin-bottom:16px">Étape 2 sur 3</p>
-      <p style="margin-bottom:12px">Collez 3 à 5 exemples de contenus existants de cette marque (posts LinkedIn, emails, textes du site...).</p>
-      <div class="field"><textarea id="be-source" style="min-height:220px" placeholder="Collez ici vos contenus existants..."></textarea></div>
-      <div class="row">
+      <p style="margin-bottom:4px">Uploadez 3 à 5 documents existants de cette marque (posts LinkedIn exportés, emails, PDF de présentation, fichiers Word, textes du site...).</p>
+
+      <div id="dropzone" class="dropzone">
+        <div class="up-icon">⬆️</div>
+        <p style="font-weight:600">Glissez vos fichiers ici ou cliquez pour parcourir</p>
+        <p class="small">Formats acceptés : .pdf, .doc, .docx, .txt — maximum 5 fichiers, 10 Mo par fichier</p>
+        <input id="file-input" type="file" multiple accept=".pdf,.doc,.docx,.txt" style="display:none" />
+      </div>
+      <div id="file-list"></div>
+
+      <div class="row" style="margin-top:16px">
         <button class="btn-secondary btn-sm" onclick="beBack(2)">← Retour</button>
-        <button class="btn-primary" onclick="beAnalyze()">Analyser et extraire la Brand Memory</button>
+        <button class="btn-primary" onclick="beAnalyzeFiles()">Analyser mes documents →</button>
       </div>
     </div>
 
@@ -455,6 +475,9 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Extraction de texte : PDF (pdf.js) et Word .docx (mammoth.js) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script>
 /* =========================================================================
    CONFIGURATION
@@ -763,11 +786,16 @@ function openBrandEditor(){
     showToast(`Votre plan ${PLAN_LABEL[state.profile.plan]} est limité à ${limit} marque(s). Passez à un plan supérieur.`,'err');
     return;
   }
-  state.beDraft={ couleur:'#7C5CFC' };
+  state.beDraft={ couleur:'#7C5CFC', id:newUUID(), files:[] };
   document.getElementById('be-nom').value=''; document.getElementById('be-site').value='';
-  document.getElementById('be-source').value=''; document.getElementById('be-couleur').value='#7C5CFC';
+  document.getElementById('be-couleur').value='#7C5CFC';
+  renderFileList(); setupDropzone();
   beShowStep(1);
   show('view-brand-editor');
+}
+function newUUID(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&0x3|0x8)).toString(16);});
 }
 function beShowStep(n){
   [1,2,3].forEach(i=>{
@@ -785,12 +813,107 @@ function beNext(from){
   state.beDraft.couleur=document.getElementById('be-couleur').value;
   beShowStep(2);
 }
-async function beAnalyze(){
-  const source=document.getElementById('be-source').value.trim();
-  if(source.length<30){ showToast('Collez un peu plus de contenu pour une bonne analyse.','err'); return; }
-  state.beDraft.contenu_source=source;
-  loader(true,'Analyse en cours... L\'IA extrait la voix de votre marque');
-  const mem=await callExtract(source);
+/* ---- Upload & extraction de documents (étape 2) ---- */
+const MAX_FILES=5, MAX_SIZE=10*1024*1024, ALLOWED=['pdf','doc','docx','txt'];
+let dropzoneReady=false;
+if(window.pdfjsLib){ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; }
+
+function fmtSize(b){ return b<1024 ? b+' o' : b<1048576 ? (b/1024).toFixed(0)+' Ko' : (b/1048576).toFixed(1)+' Mo'; }
+
+function setupDropzone(){
+  if(dropzoneReady) return; dropzoneReady=true;
+  const dz=document.getElementById('dropzone'), inp=document.getElementById('file-input');
+  dz.addEventListener('click',()=>inp.click());
+  inp.addEventListener('change',()=>{ handleFiles(inp.files); inp.value=''; });
+  ['dragover','dragenter'].forEach(ev=>dz.addEventListener(ev,e=>{ e.preventDefault(); dz.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{ e.preventDefault(); dz.classList.remove('drag'); }));
+  dz.addEventListener('drop',e=>{ if(e.dataTransfer&&e.dataTransfer.files) handleFiles(e.dataTransfer.files); });
+}
+
+function handleFiles(list){
+  for(const f of [...list]){
+    if(state.beDraft.files.length>=MAX_FILES){ showToast('Maximum 5 fichiers.','err'); break; }
+    const ext=(f.name.split('.').pop()||'').toLowerCase();
+    if(!ALLOWED.includes(ext)){ showToast('Format non supporté : '+f.name,'err'); continue; }
+    if(f.size>MAX_SIZE){ showToast('Fichier trop volumineux (>10 Mo) : '+f.name,'err'); continue; }
+    const item={ file:f, name:f.name, size:f.size, ext, progress:0, status:'processing', text:'' };
+    state.beDraft.files.push(item);
+    processFile(item);
+  }
+  renderFileList();
+}
+
+async function processFile(item){
+  try{
+    item.progress=25; renderFileList();
+    item.text=await extractText(item.file,item.ext);
+    item.progress=65; renderFileList();
+    await uploadToStorage(item.file);              // best-effort (mode démo : ignoré si non configuré)
+    item.progress=100;
+    item.status=(item.text && item.text.trim()) ? 'ready' : 'error';
+    renderFileList();
+  }catch(e){
+    console.warn('Extraction:',e);
+    item.progress=100; item.status=(item.text && item.text.trim())?'ready':'error'; renderFileList();
+  }
+}
+
+function renderFileList(){
+  const box=document.getElementById('file-list'); if(!box) return;
+  box.innerHTML='';
+  (state.beDraft?.files||[]).forEach((it,idx)=>{
+    const row=document.createElement('div'); row.className='file-row';
+    const st = it.status==='error' ? '<span style="color:var(--error)">Illisible</span>'
+             : it.status==='ready' ? '<span style="color:var(--success)">Prêt ✓</span>'
+             : 'Traitement…';
+    row.innerHTML=`<span style="font-size:20px">📄</span><div class="meta"><div>${escapeHtml(it.name)}</div><div class="small">${fmtSize(it.size)} · ${st}</div><div class="bar"><div style="width:${it.progress}%"></div></div></div><span class="del" title="Supprimer">✕</span>`;
+    row.querySelector('.del').onclick=()=>{ state.beDraft.files.splice(idx,1); renderFileList(); };
+    box.appendChild(row);
+  });
+}
+
+async function extractText(file,ext){
+  if(ext==='txt') return await readTxt(file);
+  if(ext==='pdf') return await readPdf(file);
+  if(ext==='docx'||ext==='doc') return await readDocx(file);
+  return '';
+}
+function readTxt(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result||''); r.onerror=rej; r.readAsText(file); }); }
+async function readPdf(file){
+  if(!window.pdfjsLib) throw new Error('pdf.js non chargé');
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let text='';
+  for(let i=1;i<=pdf.numPages;i++){ const page=await pdf.getPage(i); const c=await page.getTextContent(); text+=c.items.map(x=>x.str).join(' ')+'\n'; }
+  return text;
+}
+async function readDocx(file){
+  if(!window.mammoth) throw new Error('mammoth.js non chargé');
+  const buf=await file.arrayBuffer();
+  const res=await mammoth.extractRawText({arrayBuffer:buf});
+  return res.value||'';
+}
+
+async function uploadToStorage(file){
+  if(!state.user) return;   // non connecté → on saute l'upload (l'analyse fonctionne quand même)
+  try{
+    const path=`${state.user.id}/${state.beDraft.id}/${file.name}`;
+    const { error }=await db.storage.from('brand-documents').upload(path,file,{upsert:true});
+    if(error) console.warn('Upload Storage ignoré :',error.message);
+  }catch(e){ console.warn('Storage indisponible :',e.message); }
+}
+
+async function beAnalyzeFiles(){
+  const ready=(state.beDraft.files||[]).filter(f=>f.status==='ready' && f.text && f.text.trim());
+  if(!ready.length){ showToast('Ajoutez au moins un document lisible.','err'); return; }
+  loader(true,'Lecture des documents en cours...');
+  await wait(800);
+  const concatenated=ready.map(f=>`# ${f.name}\n${f.text}`).join('\n\n---\n\n');
+  state.beDraft.contenu_source=concatenated;
+  document.getElementById('loader-msg').textContent='Extraction de votre Brand Memory...';
+  const mem=await callExtract(concatenated);
+  document.getElementById('loader-msg').textContent='Finalisation de l\'analyse...';
+  await wait(800);
   loader(false);
   document.getElementById('be-ton').value=mem.ton;
   document.getElementById('be-cles').value=(mem.mots_cles||[]).join(', ');
@@ -809,7 +932,7 @@ async function beSave(){
   };
   loader(true,'Création de la marque...');
   const { data, error }=await db.from('brands').insert({
-    user_id:state.user.id, nom:state.beDraft.nom, secteur:state.beDraft.secteur,
+    id:state.beDraft.id, user_id:state.user.id, nom:state.beDraft.nom, secteur:state.beDraft.secteur,
     site_web:state.beDraft.site_web, couleur:state.beDraft.couleur,
     contenu_source:state.beDraft.contenu_source, brand_memory
   }).select().single();

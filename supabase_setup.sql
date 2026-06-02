@@ -100,5 +100,28 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- =====================================================================
+--  STOCKAGE DES DOCUMENTS (Supabase Storage)
+--  Bucket privé "brand-documents" + accès limité à ses propres dossiers.
+--  (Optionnel en mode démo : l'analyse fonctionne même sans ça ; mais
+--   nécessaire pour réellement stocker les fichiers uploadés.)
+-- =====================================================================
+insert into storage.buckets (id, name, public)
+values ('brand-documents', 'brand-documents', false)
+on conflict (id) do nothing;
+
+-- Chaque utilisateur n'accède qu'au dossier portant son propre id.
+drop policy if exists "brand_docs_insert" on storage.objects;
+create policy "brand_docs_insert" on storage.objects for insert to authenticated
+  with check (bucket_id = 'brand-documents' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "brand_docs_select" on storage.objects;
+create policy "brand_docs_select" on storage.objects for select to authenticated
+  using (bucket_id = 'brand-documents' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "brand_docs_delete" on storage.objects;
+create policy "brand_docs_delete" on storage.objects for delete to authenticated
+  using (bucket_id = 'brand-documents' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- =====================================================================
 --  Terminé. Vous devriez voir "Success. No rows returned".
 -- =====================================================================

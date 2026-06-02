@@ -39,7 +39,15 @@ par RLS. Un trigger crée automatiquement le `profile` à chaque inscription.
 2. **Auth** — inscription / connexion via Supabase Auth.
 3. **Dashboard** — sidebar des marques + 3 onglets : Brand Memory, Générer du
    contenu, Calendrier éditorial.
-4. **Éditeur de marque** — assistant en 3 étapes (infos → nourrir → valider).
+4. **Éditeur de marque** — assistant en 3 étapes :
+   - Étape 1 : infos de base (nom, secteur, site, couleur).
+   - Étape 2 : **upload de documents** par drag & drop (.pdf, .doc, .docx, .txt,
+     max 5 fichiers / 10 Mo). Extraction du texte en local : **pdf.js** (PDF),
+     **mammoth.js** (Word .docx), FileReader (TXT). Les fichiers sont aussi envoyés
+     dans le bucket Supabase Storage `brand-documents/{user_id}/{brand_id}/`
+     (upload best-effort : ignoré silencieusement si le bucket n'est pas configuré).
+     Le texte concaténé est envoyé à `callExtract()` (IA, simulée en mode démo).
+   - Étape 3 : validation / édition de la Brand Memory, puis création.
 
 ## Déploiement
 `git add . && git commit -m "..." && git push` → GitHub Pages se met à jour
