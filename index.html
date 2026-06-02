@@ -696,7 +696,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const DEMO_MODE = true;
 
 /* ---------- État global ---------- */
-let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true, calMonth: null, calendarItems: [], currentVariants: [], selectedVariantIdx: 0, genRowId: null };
+let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true, calMonth: null, calendarItems: [], currentVariants: [], selectedVariantIdx: 0, genRowId: null, genContext: null };
 
 /* ---------- Utilitaires UI ---------- */
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
@@ -886,6 +886,7 @@ function renderChannelView(){
   ch.formats.forEach((f,i)=>{
     const b=document.createElement('button');
     b.type='button'; b.className='format-pill'+(i===0?' active':''); b.textContent=f;
+    b.dataset.format=f;
     b.onclick=()=>selectFormat(f,b);
     box.appendChild(b);
   });
@@ -1032,6 +1033,7 @@ async function declineFormats(){
 async function generateVariants(sujet, fmt){
   loader(true,'Génération des 3 variantes...');
   const label=`${state.currentChannel} — ${fmt}`;
+  state.genContext={ sujet, fmt };
   const res=await callGenerateVariants(state.selectedBrand, sujet, label);
   state.currentVariants=(res && res.variantes)||[];
   state.selectedVariantIdx=0;
@@ -1046,25 +1048,71 @@ async function generateVariants(sujet, fmt){
   }
   loader(false);
   renderVariants();
-  document.getElementById('gen-decline').style.display='inline-block';
   showToast('3 variantes générées ✓','ok');
 }
-// IA simulée : renvoie 3 variantes (storytelling / liste / question). En réel : JSON de l'API Claude.
+// Construit une variante adaptée à l'approche, au format et au réseau (mode démo).
+function buildVariant(approach, f, ch, ctx){
+  const opener = approach==='storytelling'
+    ? `Il y a quelque temps, chez ${ctx.nom}, une conversation a tout changé sur « ${ctx.sujet} ».`
+    : approach==='liste'
+      ? `${ctx.sujet} : l'essentiel pour ${ctx.cibleL}, sans détour.`
+      : `Et si « ${ctx.sujet} » était plus simple qu'on ne le croit ?`;
+
+  if(f.includes('carrousel'))
+    return `${opener}\n\nPlan de carrousel — « ${ctx.sujet} »\nSlide 1 · Pourquoi « ${ctx.sujet} » compte maintenant\nSlide 2 · Le vrai problème de ${ctx.cibleL}\nSlide 3 · L'erreur la plus fréquente\nSlide 4 · Notre approche : ${ctx.cles}\nSlide 5 · Un exemple concret chez ${ctx.nom}\nSlide 6 · Les résultats à attendre\nSlide 7 · Passez à l'action 👉\n\n${ctx.hashtags}`;
+  if(f.includes('article'))
+    return `${ctx.sujet}\n\n${opener}\n\nIntroduction\n${ctx.cibleL} fait face à un défi : trop de bruit, pas assez de cohérence.\n\n1. Le constat\nLe secteur ${ctx.secteurL} évolue vite ; rester ${ctx.tonL} fait la différence.\n\n2. Notre méthode\nTout repose sur ${ctx.cles}.\n\n3. En pratique\nDes actions simples, mesurables, alignées avec nos valeurs.\n\nConclusion\n« ${ctx.sujet} » est un vrai levier — et chez ${ctx.nom}, on le prend au sérieux.\n\n${ctx.hashtags}`;
+  if(f.includes('thread'))
+    return `1/ ${opener}\n\n2/ Chez ${ctx.nom}, on mise sur ${ctx.cles}.\n\n3/ Pourquoi ? Parce que ${ctx.cibleL} mérite de la clarté, pas du jargon.\n\n4/ L'erreur classique : viser le coup d'éclat plutôt que la cohérence.\n\n5/ Notre conviction : un message ${ctx.tonL} qui dure.\n\n6/ Si ce thread t'a parlé, partage le 1er post 🔁`;
+  if(f.includes('tweet'))
+    return `${opener}\n\nChez ${ctx.nom}, on parie sur ${ctx.premier}.\n\n${ctx.hashtags.split(' ').slice(0,3).join(' ')}`;
+  if(f.includes('caption'))
+    return `${opener} ✨\n\nChez ${ctx.nom}, on croit à ${ctx.cles} 💛\nUn message ${ctx.tonL}, pensé pour ${ctx.cibleL}.\n\n👉 Enregistre ce post et dis-nous en commentaire ce que tu en penses 💬\n\n${ctx.hashtagsIG}`;
+  if(f.includes('story'))
+    return `${opener}\n\n💡 ${ctx.premier} > tout le reste.\n\n[Visuel suggéré : fond uni, grand texte + sticker sondage « Vous aussi ? »]`;
+  if(f.includes('vente'))
+    return `Objet : ${ctx.sujet} — l'offre à ne pas manquer\n\n${opener}\n\nConcrètement, pour ${ctx.cibleL}, ça veut dire :\n• ${ctx.cles}\n• un accompagnement ${ctx.tonL}\n• des résultats mesurables\n\n👉 Réservez votre place dès aujourd'hui.\n\n— L'équipe ${ctx.nom}`;
+  if(f.includes('bienvenue'))
+    return `Objet : Bienvenue chez ${ctx.nom} 👋\n\n${opener}\n\nIci, une promesse : ${ctx.cles}. On écrit pour ${ctx.cibleL}, toujours ${ctx.tonL}.\n\nPour commencer, on vous parle de « ${ctx.sujet} ».\n\nÀ très vite,\n— L'équipe ${ctx.nom}`;
+  if(f.includes('newsletter') || ch==='email')
+    return `Objet : ${ctx.sujet} (l'essentiel en 2 min)\n\n${opener}\n\nNotre approche tient en trois mots : ${ctx.cles}.\nPour ${ctx.cibleL}, ça se traduit par des résultats concrets, pas des promesses.\n\n👉 Découvrez comment on s'y prend.\n\n— L'équipe ${ctx.nom}`;
+  if(f.includes('bio'))
+    return `${ctx.nom} · ${ctx.cles}\nOn aide ${ctx.cibleL} à passer à l'action.\nTon ${ctx.tonL}. 👉 « ${ctx.sujet} »`;
+  if(f.includes('événement') || f.includes('evenement'))
+    return `📅 ÉVÉNEMENT — « ${ctx.sujet} »\n\n${opener}\n\nRejoignez ${ctx.nom} pour un moment ${ctx.tonL} dédié à ${ctx.cibleL}.\nAu programme : ${ctx.cles}.\n\n👉 Cliquez sur « Participe » et invitez vos collègues !`;
+  if(f.includes('groupe') || f.includes('annonce'))
+    return `Bonjour à toutes et à tous 👋\n\n${opener}\n\nPetite annonce de ${ctx.nom} : on lance « ${ctx.sujet} ». Notre fil rouge : ${ctx.cles}.\n\nDites-nous en commentaire ce que vous en pensez 👇`;
+  if(ch==='facebook')
+    return `${opener}\n\nChez ${ctx.nom}, on avance avec ${ctx.cles}, toujours dans un esprit ${ctx.tonL}. On écrit pour ${ctx.cibleL}, et on préfère les vraies conversations aux grands discours.\n\nEt vous, comment voyez-vous « ${ctx.sujet} » ? 👇`;
+  // Post LinkedIn classique / défaut
+  return `${opener}\n\nChez ${ctx.nom}, on croit qu'on peut faire autrement : avec ${ctx.cles}.\n\nCe qui compte vraiment pour ${ctx.cibleL}, ce n'est pas le bruit — c'est l'impact réel, ${ctx.tonL}.\n\nEt vous, comment abordez-vous ce sujet ?\n\n${ctx.hashtags}`;
+}
+
+// IA simulée : 3 variantes adaptées au format + réseau. En réel : JSON renvoyé par l'API Claude.
 async function callGenerateVariants(brand, sujet, format){
-  if(!DEMO_MODE){ /* TODO: fetch Edge Function, parser { "variantes": [...] } renvoyé par Claude */ }
+  if(!DEMO_MODE){ /* TODO: fetch Edge Function avec le prompt détaillé, parser { "variantes":[...] } */ }
   await wait(1200);
   const m=brand.brand_memory||{};
-  const cles=(m.mots_cles||[]).slice(0,3).join(', ');
-  const premier=(m.mots_cles||['la clarté'])[0];
-  const hashtags=(m.mots_cles||[]).map(k=>'#'+k.replace(/\s+/g,'')).slice(0,3).join(' ');
-  const cible=m.cible||'votre audience';
-  const ton=m.ton||'authentique';
-  const nom=brand.nom;
-  return { variantes: [
-    { titre:'Storytelling', contenu:`Il y a quelques mois, un client de ${nom} m'a confié son plus gros blocage sur « ${sujet} ».\n\nCe jour-là, j'ai compris une chose : pour ${cible.toLowerCase()}, ce qui compte ce n'est pas la théorie, mais l'impact réel — porté par ${cles}.\n\nDepuis, on aborde « ${sujet} » autrement, dans un esprit ${ton.toLowerCase()}.\n\nEt vous, quel a été votre déclic ?\n\n${hashtags}` },
-    { titre:'Liste', contenu:`${sujet} : 3 leviers concrets pour ${cible.toLowerCase()}.\n\n1. Misez sur ${premier} — c'est la base.\n2. Restez ${ton.toLowerCase()} : la cohérence bat la quantité.\n3. Passez à l'action, mesurez, ajustez.\n\nChez ${nom}, c'est exactement comme ça qu'on avance.\n\n${hashtags}` },
-    { titre:'Question', contenu:`Et si « ${sujet} » était plus simple qu'on ne le croit ?\n\nLa plupart de ${cible.toLowerCase()} se compliquent la vie. Chez ${nom}, on préfère l'essentiel : ${cles}.\n\nRésultat : un message ${ton.toLowerCase()}, qui sonne vrai.\n\nVous en êtes où, vous ?\n\n${hashtags}` }
-  ]};
+  const kw=m.mots_cles||[];
+  const ctx={
+    nom:brand.nom,
+    secteurL:(brand.secteur||'votre secteur').toLowerCase(),
+    cles:kw.slice(0,3).join(', ')||'la clarté, l\'impact',
+    premier:kw[0]||'la clarté',
+    hashtags:kw.map(k=>'#'+k.replace(/\s+/g,'')).slice(0,5).join(' '),
+    hashtagsIG:kw.concat(['inspiration','communauté','astuce','marque','contenu','entrepreneur','france']).map(k=>'#'+k.replace(/\s+/g,'')).slice(0,12).join(' '),
+    cibleL:(m.cible||'votre audience').toLowerCase(),
+    tonL:(m.ton||'authentique').toLowerCase(),
+    sujet
+  };
+  const ch=(state.currentChannel==='X'?'twitter':String(state.currentChannel||'').toLowerCase());
+  const f=String(format||'').toLowerCase();
+  const approaches=[{key:'storytelling',titre:'Storytelling'},{key:'liste',titre:'Direct & Liste'},{key:'question',titre:'Question'}];
+  return { variantes: approaches.map(a=>{
+    const contenu=buildVariant(a.key, f, ch, ctx);
+    const accroche=contenu.replace(/\s+/g,' ').trim().split(' ').slice(0,10).join(' ');
+    return { titre:a.titre, accroche, contenu };
+  }) };
 }
 function renderVariants(){
   const box=document.getElementById('gen-results');
@@ -1072,23 +1120,30 @@ function renderVariants(){
   if(!vs.length){ box.innerHTML=''; return; }
   let left='';
   vs.forEach((v,i)=>{
-    const apercu=(v.contenu||'').split('\n').filter(Boolean).slice(0,2).join(' ');
     left+=`<div class="variant-card${i===state.selectedVariantIdx?' active':''}" data-i="${i}">
       <div class="variant-label">Variante ${i+1} · ${escapeHtml(v.titre||'')}</div>
-      <div class="variant-preview">${escapeHtml(apercu)}</div>
+      <div class="variant-preview">${escapeHtml(v.accroche||'')}…</div>
     </div>`;
   });
-  box.innerHTML=`<p class="small" style="margin:10px 0 14px">3 variantes générées — cliquez pour choisir.</p>
-    <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap">
-      <div style="flex:0 0 220px">${left}</div>
-      <div style="flex:1; min-width:280px">
-        <div id="variant-preview-host"></div>
-        <button class="btn-secondary btn-sm" id="variant-copy" style="margin-top:12px">Copier</button>
-      </div>
+  box.innerHTML=`<div class="small" style="margin:10px 0 14px">✦ 3 variantes générées — cliquez pour en sélectionner une.</div>
+    <div style="display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap">
+      <div style="flex:0 0 210px; display:flex; flex-direction:column; gap:10px">${left}</div>
+      <div style="flex:1; min-width:280px"><div id="variant-preview-host"></div></div>
+    </div>
+    <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
+      <button class="btn-secondary btn-sm" id="variant-copy">Copier ce contenu</button>
+      <button class="btn-secondary btn-sm" id="variant-regen">Regénérer</button>
     </div>`;
   box.querySelectorAll('.variant-card').forEach(c=>{ c.onclick=()=>selectVariant(+c.getAttribute('data-i'), true); });
   document.getElementById('variant-copy').onclick=copySelectedVariant;
+  document.getElementById('variant-regen').onclick=regenerateContent;
   renderPreview();
+}
+async function regenerateContent(){
+  const sujet=(state.genContext&&state.genContext.sujet)||document.getElementById('gen-sujet').value.trim();
+  const fmt=(state.genContext&&state.genContext.fmt)||state.selectedFormat;
+  if(!sujet||!fmt){ showToast('Indiquez un sujet et un format.','err'); return; }
+  await generateVariants(sujet, fmt);
 }
 function selectVariant(i, save){
   state.selectedVariantIdx=i;
