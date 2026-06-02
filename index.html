@@ -1,80 +1,853 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Projet Bootcamp</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      background: #0f172a;
-      color: #f8fafc;
-      text-align: center;
-    }
-    h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
-    p  { font-size: 1.25rem; color: #94a3b8; }
-    .ok { color: #4ade80; font-weight: bold; }
-    button {
-      margin-top: 1.5rem;
-      padding: 0.8rem 1.6rem;
-      font-size: 1rem;
-      border: none;
-      border-radius: 8px;
-      background: #4ade80;
-      color: #0f172a;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    button:hover { background: #22c55e; }
-    #status { margin-top: 1rem; font-size: 1rem; min-height: 1.5rem; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brief to Brand — La mémoire de marque de vos contenus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --bg-card: #141414;
+    --bg-hover: #1C1C1C;
+    --border: #2A2A2A;
+    --text: #FFFFFF;
+    --text-2: #888888;
+    --accent: #7C5CFC;
+    --accent-2: #5C8AFC;
+    --success: #4ADE80;
+    --error: #F87171;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 48px; font-weight: 700; line-height: 1.1; }
+  h2 { font-size: 32px; font-weight: 600; }
+  h3 { font-size: 24px; font-weight: 600; }
+  .small { font-size: 14px; color: var(--text-2); }
+  a { color: inherit; text-decoration: none; }
+
+  /* Boutons */
+  button { font-family: inherit; cursor: pointer; transition: all 200ms ease; }
+  .btn-primary {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; padding: 12px 24px; font-size: 15px; font-weight: 600;
+  }
+  .btn-primary:hover { background: #6a4cf0; }
+  .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+  .btn-secondary {
+    background: transparent; color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 24px; font-size: 15px; font-weight: 500;
+  }
+  .btn-secondary:hover { background: var(--bg-hover); }
+  .btn-ghost {
+    background: transparent; color: var(--text-2); border: none; padding: 8px 12px;
+    font-size: 14px; font-weight: 500;
+  }
+  .btn-ghost:hover { color: var(--text); }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+
+  /* Cards & inputs */
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+  }
+  label { display: block; font-size: 14px; color: var(--text-2); margin-bottom: 6px; }
+  input, textarea, select {
+    width: 100%; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px; color: var(--text);
+    font-family: inherit; font-size: 15px; transition: border-color 200ms ease;
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 120px; }
+  .field { margin-bottom: 18px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Layout helpers */
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  .row { display: flex; gap: 12px; align-items: center; }
+  .badge {
+    display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 10px;
+    border-radius: 999px; border: 1px solid var(--border); color: var(--text-2);
+  }
+  .tag {
+    display: inline-block; background: var(--bg-hover); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px; font-size: 13px; margin: 0 6px 6px 0;
+  }
+  .tag.bad { border-color: #5a2a2a; color: #f8a6a6; }
+
+  /* ===== HEADER (landing) ===== */
+  .site-header {
+    position: sticky; top: 0; z-index: 20; background: rgba(10,10,10,.8);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--border);
+  }
+  .site-header .inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .logo .dot { width: 18px; height: 18px; border-radius: 6px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display:inline-block; }
+
+  /* ===== HERO ===== */
+  .hero { text-align: center; padding: 90px 0 70px; }
+  .hero h1 { max-width: 880px; margin: 0 auto 22px; background: linear-gradient(180deg,#fff,#cfcfcf); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p.sub { max-width: 640px; margin: 0 auto 32px; font-size: 19px; color: var(--text-2); }
+  .glow { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(124,92,252,.18), transparent 60%); top: -150px; left: 50%; transform: translateX(-50%); pointer-events: none; z-index: -1; }
+
+  section.block { padding: 70px 0; border-top: 1px solid var(--border); }
+  section.block h2 { text-align: center; margin-bottom: 12px; }
+  section.block .lead { text-align: center; color: var(--text-2); margin-bottom: 48px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+  @media (max-width: 800px){ .grid-3 { grid-template-columns: 1fr; } .hero h1{font-size:34px;} }
+  .pain .icon, .step .icon { font-size: 28px; margin-bottom: 14px; }
+  .step .num { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; margin-bottom: 14px; }
+
+  /* Pricing */
+  .price { font-size: 40px; font-weight: 700; margin: 8px 0; }
+  .price span { font-size: 16px; color: var(--text-2); font-weight: 400; }
+  .plan ul { list-style: none; margin: 18px 0; }
+  .plan li { padding: 7px 0; color: var(--text-2); font-size: 14px; }
+  .plan li::before { content: "✓ "; color: var(--success); }
+  .plan.featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+  footer.site { text-align: center; padding: 40px 0; color: var(--text-2); border-top: 1px solid var(--border); }
+
+  /* ===== AUTH ===== */
+  .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .auth-card { width: 100%; max-width: 420px; }
+  .auth-tabs { display: flex; gap: 6px; background: var(--bg-hover); border-radius: 10px; padding: 4px; margin-bottom: 24px; }
+  .auth-tabs button { flex: 1; background: transparent; border: none; color: var(--text-2); padding: 10px; border-radius: 8px; font-weight: 600; }
+  .auth-tabs button.active { background: var(--bg-card); color: var(--text); }
+
+  /* ===== DASHBOARD ===== */
+  .dash-header { height: 60px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+  .dash-body { display: flex; height: calc(100vh - 60px); }
+  .sidebar { width: 280px; border-right: 1px solid var(--border); padding: 18px; overflow-y: auto; flex-shrink: 0; }
+  .sidebar .brand-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .sidebar .brand-item:hover { background: var(--bg-hover); }
+  .sidebar .brand-item.active { background: var(--bg-hover); }
+  .brand-color-dot { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; }
+  .main { flex: 1; overflow-y: auto; padding: 28px; }
+  .empty-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-2); text-align:center; gap: 16px; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 20px 0 24px; }
+  .tabs button { background: transparent; border: none; color: var(--text-2); padding: 12px 16px; font-weight: 600; border-bottom: 2px solid transparent; }
+  .tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .mem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px){ .mem-grid { grid-template-columns: 1fr; } .sidebar{ width: 220px; } }
+  .mem-item h4 { font-size: 14px; color: var(--text-2); margin-bottom: 8px; font-weight: 500; }
+
+  .format-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 18px; }
+  .format-list label { display: flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border); padding: 10px 14px; border-radius: 8px; cursor: pointer; margin: 0; color: var(--text); font-size: 14px; }
+  .format-list input { width: auto; }
+
+  .result-card { margin-top: 16px; }
+  .result-card pre { white-space: pre-wrap; font-family: inherit; font-size: 15px; line-height: 1.6; }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 14px; margin-top: 20px; }
+  .cal-cell .date { font-size: 13px; color: var(--text-2); }
+  .cal-cell .net { font-size: 13px; margin: 6px 0; }
+
+  /* Loader */
+  #loader { position: fixed; inset: 0; background: rgba(10,10,10,.7); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 18px; z-index: 100; }
+  #loader.show { display: flex; }
+  .spinner { width: 42px; height: 42px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 800ms linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loader p { color: var(--text-2); }
+
+  /* Toast */
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px; z-index: 200; opacity: 0; transition: all 250ms ease; max-width: 90vw; }
+  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  #toast.ok { border-color: var(--success); }
+  #toast.err { border-color: var(--error); }
+
+  /* Modal */
+  .modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 90; padding: 20px; }
+  .modal-back.show { display: flex; }
+
+  .stepper { display: flex; gap: 8px; margin-bottom: 24px; }
+  .stepper .s { flex: 1; height: 4px; border-radius: 2px; background: var(--border); }
+  .stepper .s.done { background: var(--accent); }
+  .demo-banner { background: rgba(124,92,252,.12); border: 1px solid var(--accent); color: #c9bcff; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+</style>
 </head>
 <body>
-  <h1>Projet Bootcamp</h1>
-  <p class="ok">ça marche ✅</p>
 
-  <button id="test-btn">Tester l'écriture dans Supabase</button>
-  <div id="status"></div>
+<!-- ============ VIEW: LANDING ============ -->
+<div id="view-landing" class="view active">
+  <header class="site-header">
+    <div class="container inner">
+      <div class="logo"><span class="dot"></span> Brief to Brand</div>
+      <div class="row">
+        <button class="btn-ghost" onclick="showAuth('login')">Connexion</button>
+        <button class="btn-primary btn-sm" onclick="showAuth('signup')">Essai gratuit 7 jours</button>
+      </div>
+    </div>
+  </header>
 
-  <!-- Client Supabase chargé par CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    // --- Configuration Supabase ---
-    // La clé "publishable" est PUBLIQUE par conception : aucun risque à la mettre ici.
-    // La sécurité réelle repose sur les règles RLS configurées côté Supabase.
-    const SUPABASE_URL = "https://xzxsgjfehfifytflokhf.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_hretB8OfpdTt_weA_Uf8Ag_hV_cCT3L";
+  <div style="position:relative;overflow:hidden;">
+    <div class="glow"></div>
+    <div class="container hero">
+      <h1>Générez du contenu qui sonne vraiment comme votre marque — sans jamais ré-expliquer qui vous êtes.</h1>
+      <p class="sub">Brief to Brand mémorise la voix de chaque marque et génère du contenu cohérent en 10 secondes.</p>
+      <button class="btn-primary" style="font-size:17px;padding:14px 30px;" onclick="showAuth('signup')">Commencer gratuitement</button>
+    </div>
+  </div>
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  <!-- Problème -->
+  <section class="block">
+    <div class="container">
+      <h2>Le problème qu'on connaît tous</h2>
+      <p class="lead">Créer du contenu de marque cohérent, c'est épuisant.</p>
+      <div class="grid-3">
+        <div class="card pain"><div class="icon">🔁</div><h3 style="font-size:18px;margin-bottom:8px;">Toujours tout ré-expliquer</h3><p class="small">Vous ré-expliquez le ton de votre marque à chaque session IA.</p></div>
+        <div class="card pain"><div class="icon">🤖</div><h3 style="font-size:18px;margin-bottom:8px;">Du contenu sans âme</h3><p class="small">Votre contenu généré sonne générique et impersonnel.</p></div>
+        <div class="card pain"><div class="icon">🧩</div><h3 style="font-size:18px;margin-bottom:8px;">Plusieurs clients, un casse-tête</h3><p class="small">Vous gérez plusieurs clients et perdez le fil de chaque marque.</p></div>
+      </div>
+    </div>
+  </section>
 
-    // --- Test d'écriture dans la table "events" ---
-    const btn = document.getElementById("test-btn");
-    const statusEl = document.getElementById("status");
+  <!-- Solution -->
+  <section class="block">
+    <div class="container">
+      <h2>Comment ça marche</h2>
+      <p class="lead">Trois étapes, et votre marque a une mémoire.</p>
+      <div class="grid-3">
+        <div class="card step"><div class="num">1</div><h3 style="font-size:18px;margin-bottom:8px;">Nourrissez</h3><p class="small">Uploadez vos contenus existants : posts, emails, textes du site.</p></div>
+        <div class="card step"><div class="num">2</div><h3 style="font-size:18px;margin-bottom:8px;">Apprenez</h3><p class="small">L'IA extrait votre Brand Memory : ton, mots-clés, cible, valeurs.</p></div>
+        <div class="card step"><div class="num">3</div><h3 style="font-size:18px;margin-bottom:8px;">Générez</h3><p class="small">Du contenu ancré dans votre voix, en 10 secondes.</p></div>
+      </div>
+    </div>
+  </section>
 
-    btn.addEventListener("click", async () => {
-      statusEl.textContent = "Envoi en cours…";
-      statusEl.style.color = "#94a3b8";
+  <!-- Pricing -->
+  <section class="block">
+    <div class="container">
+      <h2>Des prix simples</h2>
+      <p class="lead">Essai gratuit de 7 jours sur chaque formule. Sans engagement.</p>
+      <div class="grid-3">
+        <div class="card plan">
+          <h3>Solo</h3><div class="price">19€<span>/mois</span></div>
+          <ul><li>1 marque</li><li>Tous les formats</li><li>Brand Memory illimitée</li></ul>
+          <button class="btn-secondary" style="width:100%" onclick="openLead('solo')">Essai gratuit 7 jours</button>
+        </div>
+        <div class="card plan featured">
+          <span class="badge" style="border-color:var(--accent);color:#c9bcff">Le plus choisi</span>
+          <h3 style="margin-top:8px;">Pro</h3><div class="price">49€<span>/mois</span></div>
+          <ul><li>Jusqu'à 10 marques</li><li>Tous les formats</li><li>Calendrier éditorial</li></ul>
+          <button class="btn-primary" style="width:100%" onclick="openLead('pro')">Essai gratuit 7 jours</button>
+        </div>
+        <div class="card plan">
+          <h3>Business</h3><div class="price">99€<span>/mois</span></div>
+          <ul><li>Marques illimitées</li><li>Accès équipe</li><li>Support prioritaire</li></ul>
+          <button class="btn-secondary" style="width:100%" onclick="openLead('business')">Essai gratuit 7 jours</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
-      const { data, error } = await supabase
-        .from("events")
-        .insert({ type: "test-bouton" })
-        .select();
+  <footer class="site">Brief to Brand © 2026 — Fait en France 🇫🇷</footer>
+</div>
 
-      if (error) {
-        statusEl.textContent = "❌ Erreur : " + error.message;
-        statusEl.style.color = "#f87171";
-        console.error(error);
-      } else {
-        statusEl.textContent = "✅ Écrit dans Supabase ! (id " + data[0].id + ")";
-        statusEl.style.color = "#4ade80";
-      }
+<!-- ============ VIEW: AUTH ============ -->
+<div id="view-auth" class="view">
+  <div class="auth-wrap">
+    <div class="auth-card card">
+      <div class="logo" style="justify-content:center;margin-bottom:20px;"><span class="dot"></span> Brief to Brand</div>
+      <div class="auth-tabs">
+        <button id="tab-signup" class="active" onclick="switchAuth('signup')">Inscription</button>
+        <button id="tab-login" onclick="switchAuth('login')">Connexion</button>
+      </div>
+
+      <!-- Inscription -->
+      <form id="form-signup" onsubmit="return doSignup(event)">
+        <div class="field"><label>Prénom</label><input id="su-prenom" required placeholder="Camille" /></div>
+        <div class="field"><label>Email professionnel</label><input id="su-email" type="email" required placeholder="vous@agence.fr" /></div>
+        <div class="field"><label>Mot de passe</label><input id="su-pass" type="password" required minlength="6" placeholder="6 caractères minimum" /></div>
+        <button class="btn-primary" style="width:100%" type="submit">Créer mon compte gratuitement</button>
+      </form>
+
+      <!-- Connexion -->
+      <form id="form-login" style="display:none" onsubmit="return doLogin(event)">
+        <div class="field"><label>Email</label><input id="li-email" type="email" required placeholder="vous@agence.fr" /></div>
+        <div class="field"><label>Mot de passe</label><input id="li-pass" type="password" required placeholder="••••••••" /></div>
+        <button class="btn-primary" style="width:100%" type="submit">Se connecter</button>
+      </form>
+
+      <p class="small" style="text-align:center;margin-top:18px;"><a onclick="showLanding()" style="cursor:pointer;color:var(--text-2)">← Retour à l'accueil</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ VIEW: DASHBOARD ============ -->
+<div id="view-dashboard" class="view">
+  <div class="dash-header">
+    <div class="logo"><span class="dot"></span> Brief to Brand</div>
+    <div class="row">
+      <span class="small">Bonjour, <strong id="dash-prenom" style="color:var(--text)"></strong></span>
+      <button class="btn-secondary btn-sm" onclick="doLogout()">Déconnexion</button>
+    </div>
+  </div>
+  <div class="dash-body">
+    <aside class="sidebar">
+      <button class="btn-primary btn-sm" style="width:100%;margin-bottom:16px;" onclick="openBrandEditor()">+ Nouvelle marque</button>
+      <div class="small" style="text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Vos marques</div>
+      <div id="brand-list"></div>
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+        <div class="small">Plan actuel</div>
+        <div class="row" style="justify-content:space-between;margin-top:6px;">
+          <span class="badge" id="plan-badge">Solo</span>
+          <button class="btn-ghost btn-sm" onclick="showToast('Gestion de l\'abonnement bientôt disponible.','ok')">Gérer</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- Empty -->
+      <div id="dash-empty" class="empty-state">
+        <div style="font-size:40px">🗂️</div>
+        <h3>Sélectionnez une marque ou créez-en une nouvelle</h3>
+        <button class="btn-primary" onclick="openBrandEditor()">+ Créer ma première marque</button>
+      </div>
+
+      <!-- Selected brand -->
+      <div id="dash-brand" style="display:none">
+        <div class="row" style="justify-content:space-between">
+          <div class="row"><span class="brand-color-dot" id="cur-color" style="width:18px;height:18px"></span><h2 id="cur-name"></h2></div>
+          <span class="badge" id="cur-sector"></span>
+        </div>
+
+        <div class="tabs">
+          <button class="active" onclick="switchTab('memory',this)">Brand Memory</button>
+          <button onclick="switchTab('generate',this)">Générer du contenu</button>
+          <button onclick="switchTab('calendar',this)">Calendrier éditorial</button>
+        </div>
+
+        <!-- TAB: Brand Memory -->
+        <div id="panel-memory" class="tab-panel active">
+          <div class="mem-grid" id="mem-display"></div>
+          <div class="row" style="margin-top:20px">
+            <button class="btn-secondary btn-sm" onclick="editMemory()">Modifier manuellement</button>
+            <button class="btn-secondary btn-sm" onclick="reanalyze()">Re-analyser</button>
+          </div>
+        </div>
+
+        <!-- TAB: Générer -->
+        <div id="panel-generate" class="tab-panel">
+          <div class="field"><label>Sujet du contenu</label><input id="gen-sujet" placeholder="Ex : Lancement de notre nouvelle offre d'accompagnement" /></div>
+          <label>Format(s)</label>
+          <div class="format-list" id="gen-formats">
+            <label><input type="checkbox" value="Post LinkedIn" checked /> Post LinkedIn</label>
+            <label><input type="checkbox" value="Caption Instagram" /> Caption Instagram</label>
+            <label><input type="checkbox" value="Email newsletter" /> Email newsletter</label>
+            <label><input type="checkbox" value="Thread X (Twitter)" /> Thread X (Twitter)</label>
+            <label><input type="checkbox" value="Post Facebook" /> Post Facebook</label>
+          </div>
+          <button class="btn-primary" onclick="doGenerate()">Générer</button>
+          <div id="gen-results"></div>
+          <button id="gen-decline" class="btn-secondary btn-sm" style="display:none;margin-top:14px" onclick="declineFormats()">Décliner en d'autres formats</button>
+        </div>
+
+        <!-- TAB: Calendrier -->
+        <div id="panel-calendar" class="tab-panel">
+          <div class="grid-3">
+            <div class="field"><label>Période</label><select id="cal-periode"><option value="semaine">Semaine</option><option value="mois">Mois</option></select></div>
+            <div class="field"><label>Fréquence</label><select id="cal-freq"><option value="2">2x / semaine</option><option value="3">3x / semaine</option><option value="quotidien">Quotidien</option></select></div>
+            <div class="field"><label>Réseaux</label>
+              <div class="format-list" style="margin-top:0">
+                <label><input type="checkbox" class="cal-net" value="LinkedIn" checked/> LinkedIn</label>
+                <label><input type="checkbox" class="cal-net" value="Instagram"/> Instagram</label>
+                <label><input type="checkbox" class="cal-net" value="Email"/> Email</label>
+                <label><input type="checkbox" class="cal-net" value="X"/> X</label>
+              </div>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="doCalendar()">Générer le calendrier</button>
+          <div id="cal-results" class="cal-grid"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ VIEW: BRAND EDITOR ============ -->
+<div id="view-brand-editor" class="view">
+  <div class="dash-header">
+    <div class="logo"><span class="dot"></span> Brief to Brand</div>
+    <button class="btn-secondary btn-sm" onclick="showDashboard()">← Retour au dashboard</button>
+  </div>
+  <div class="container" style="max-width:680px;padding-top:36px;padding-bottom:60px">
+    <div class="stepper"><div class="s done" id="step-bar-1"></div><div class="s" id="step-bar-2"></div><div class="s" id="step-bar-3"></div></div>
+
+    <!-- Étape 1 -->
+    <div id="be-step-1">
+      <h2>Informations de base</h2>
+      <p class="small" style="margin-bottom:24px">Étape 1 sur 3</p>
+      <div class="field"><label>Nom de la marque *</label><input id="be-nom" required placeholder="Ex : Atelier Lumen" /></div>
+      <div class="field"><label>Secteur d'activité</label>
+        <select id="be-secteur">
+          <option>Conseil & Services</option><option>E-commerce</option><option>SaaS / Tech</option>
+          <option>Santé & Bien-être</option><option>Mode & Beauté</option><option>Food & Restauration</option>
+          <option>Immobilier</option><option>Éducation & Formation</option><option>Finance</option><option>Autre</option>
+        </select>
+      </div>
+      <div class="field"><label>Site web (optionnel)</label><input id="be-site" placeholder="https://..." /></div>
+      <div class="field"><label>Couleur associée</label><input id="be-couleur" type="color" value="#7C5CFC" style="height:46px;padding:4px" /></div>
+      <button class="btn-primary" onclick="beNext(1)">Étape suivante</button>
+    </div>
+
+    <!-- Étape 2 -->
+    <div id="be-step-2" style="display:none">
+      <h2>Nourrir la Brand Memory</h2>
+      <p class="small" style="margin-bottom:16px">Étape 2 sur 3</p>
+      <p style="margin-bottom:12px">Collez 3 à 5 exemples de contenus existants de cette marque (posts LinkedIn, emails, textes du site...).</p>
+      <div class="field"><textarea id="be-source" style="min-height:220px" placeholder="Collez ici vos contenus existants..."></textarea></div>
+      <div class="row">
+        <button class="btn-secondary btn-sm" onclick="beBack(2)">← Retour</button>
+        <button class="btn-primary" onclick="beAnalyze()">Analyser et extraire la Brand Memory</button>
+      </div>
+    </div>
+
+    <!-- Étape 3 -->
+    <div id="be-step-3" style="display:none">
+      <h2>Validation de la Brand Memory</h2>
+      <p class="small" style="margin-bottom:20px">Étape 3 sur 3 — vous pouvez tout modifier avant de valider.</p>
+      <div class="field"><label>Ton détecté</label><input id="be-ton" /></div>
+      <div class="field"><label>Mots-clés (séparés par des virgules)</label><input id="be-cles" /></div>
+      <div class="field"><label>Mots à éviter (séparés par des virgules)</label><input id="be-interdits" /></div>
+      <div class="field"><label>Cible adressée</label><input id="be-cible" /></div>
+      <div class="field"><label>Valeurs de la marque (séparées par des virgules)</label><input id="be-valeurs" /></div>
+      <div class="row">
+        <button class="btn-secondary btn-sm" onclick="beBack(3)">← Retour</button>
+        <button class="btn-primary" onclick="beSave()">Valider et créer la marque</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lead modal -->
+<div class="modal-back" id="lead-modal">
+  <div class="card" style="max-width:400px;width:100%">
+    <h3 style="margin-bottom:6px">Démarrer votre essai gratuit</h3>
+    <p class="small" style="margin-bottom:18px">7 jours gratuits, sans carte bancaire.</p>
+    <div class="field"><label>Prénom</label><input id="lead-prenom" placeholder="Camille" /></div>
+    <div class="field"><label>Email</label><input id="lead-email" type="email" placeholder="vous@agence.fr" /></div>
+    <div class="row">
+      <button class="btn-secondary btn-sm" onclick="closeLead()">Annuler</button>
+      <button class="btn-primary" onclick="submitLead()">Continuer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loader & toast -->
+<div id="loader"><div class="spinner"></div><p id="loader-msg">Chargement...</p></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* =========================================================================
+   CONFIGURATION
+   La clé Supabase ci-dessous est PUBLIQUE par conception (aucun risque).
+   La sécurité repose sur les règles RLS configurées côté Supabase.
+   ========================================================================= */
+const SUPABASE_URL = "https://xzxsgjfehfifytflokhf.supabase.co";
+const SUPABASE_KEY = "sb_publishable_hretB8OfpdTt_weA_Uf8Ag_hV_cCT3L";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* MODE DÉMO : l'IA est SIMULÉE (textes réalistes générés en local, sans clé API).
+   Pour brancher la vraie IA plus tard, passez DEMO_MODE à false et implémentez
+   callClaude() pour appeler une Edge Function Supabase qui garde la clé secrète. */
+const DEMO_MODE = true;
+
+/* ---------- État global ---------- */
+let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null };
+
+/* ---------- Utilitaires UI ---------- */
+function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
+function loader(on,msg){ const l=document.getElementById('loader'); document.getElementById('loader-msg').textContent=msg||'Chargement...'; l.classList.toggle('show',!!on); }
+function showToast(msg,type){ const t=document.getElementById('toast'); t.textContent=msg; t.className='show '+(type||''); setTimeout(()=>t.className='',2600); }
+const PLAN_LABEL = { solo:'Solo', pro:'Pro', business:'Business' };
+const PLAN_LIMIT = { solo:1, pro:10, business:Infinity };
+const NET_ICON = { LinkedIn:'💼', Instagram:'📸', Email:'✉️', X:'🐦', Facebook:'👥' };
+function splitList(s){ return (s||'').split(',').map(x=>x.trim()).filter(Boolean); }
+
+/* ---------- Navigation ---------- */
+function showLanding(){ show('view-landing'); }
+function showAuth(which){ show('view-auth'); switchAuth(which||'signup'); }
+function switchAuth(which){
+  const su=which==='signup';
+  document.getElementById('form-signup').style.display=su?'block':'none';
+  document.getElementById('form-login').style.display=su?'none':'block';
+  document.getElementById('tab-signup').classList.toggle('active',su);
+  document.getElementById('tab-login').classList.toggle('active',!su);
+}
+function showDashboard(){ show('view-dashboard'); renderDashboard(); }
+
+/* =========================================================================
+   AUTHENTIFICATION (Supabase Auth)
+   ========================================================================= */
+async function doSignup(e){
+  e.preventDefault();
+  const prenom=document.getElementById('su-prenom').value.trim();
+  const email=document.getElementById('su-email').value.trim();
+  const pass=document.getElementById('su-pass').value;
+  loader(true,'Création de votre compte...');
+  const { data, error } = await db.auth.signUp({ email, password:pass, options:{ data:{ prenom } } });
+  loader(false);
+  if(error){ showToast('Erreur : '+error.message,'err'); return false; }
+  if(data.session){ await afterLogin(); }
+  else { showToast('Compte créé ! Vérifiez votre email pour confirmer, puis connectez-vous.','ok'); switchAuth('login'); }
+  return false;
+}
+async function doLogin(e){
+  e.preventDefault();
+  const email=document.getElementById('li-email').value.trim();
+  const pass=document.getElementById('li-pass').value;
+  loader(true,'Connexion...');
+  const { error } = await db.auth.signInWithPassword({ email, password:pass });
+  loader(false);
+  if(error){ showToast('Erreur : '+error.message,'err'); return false; }
+  await afterLogin();
+  return false;
+}
+async function doLogout(){ await db.auth.signOut(); state={ user:null,profile:null,brands:[],selectedBrand:null,beDraft:null,lastGen:null }; showLanding(); }
+
+async function afterLogin(){
+  const { data:{ user } } = await db.auth.getUser();
+  if(!user){ return; }
+  state.user=user;
+  // Charger / créer le profil
+  let { data:profile } = await db.from('profiles').select('*').eq('id',user.id).single();
+  if(!profile){
+    const prenom=user.user_metadata?.prenom||'';
+    const ins=await db.from('profiles').insert({ id:user.id, prenom, email:user.email, plan:'solo' }).select().single();
+    profile=ins.data;
+  }
+  state.profile=profile||{ prenom:user.user_metadata?.prenom||'', plan:'solo' };
+  await loadBrands();
+  showDashboard();
+}
+
+async function loadBrands(){
+  const { data } = await db.from('brands').select('*').order('created_at',{ascending:false});
+  state.brands=data||[];
+}
+
+/* =========================================================================
+   DASHBOARD
+   ========================================================================= */
+function renderDashboard(){
+  document.getElementById('dash-prenom').textContent=state.profile?.prenom||'';
+  document.getElementById('plan-badge').textContent=PLAN_LABEL[state.profile?.plan]||'Solo';
+  // Liste des marques
+  const list=document.getElementById('brand-list');
+  list.innerHTML = state.brands.length ? '' : '<p class="small">Aucune marque pour l\'instant.</p>';
+  state.brands.forEach(b=>{
+    const el=document.createElement('div');
+    el.className='brand-item'+(state.selectedBrand&&state.selectedBrand.id===b.id?' active':'');
+    el.innerHTML=`<span class="brand-color-dot" style="background:${b.couleur||'#7C5CFC'}"></span><span>${escapeHtml(b.nom)}</span>`;
+    el.onclick=()=>selectBrand(b.id);
+    list.appendChild(el);
+  });
+  // Zone centrale
+  const hasSel=!!state.selectedBrand;
+  document.getElementById('dash-empty').style.display=hasSel?'none':'flex';
+  document.getElementById('dash-brand').style.display=hasSel?'block':'none';
+  if(hasSel) renderBrand();
+}
+function selectBrand(id){ state.selectedBrand=state.brands.find(b=>b.id===id); state.lastGen=null; renderDashboard(); }
+
+function renderBrand(){
+  const b=state.selectedBrand;
+  document.getElementById('cur-name').textContent=b.nom;
+  document.getElementById('cur-color').style.background=b.couleur||'#7C5CFC';
+  document.getElementById('cur-sector').textContent=b.secteur||'';
+  renderMemory();
+}
+function renderMemory(){
+  const m=state.selectedBrand.brand_memory||{};
+  const tags=(arr)=>(arr||[]).map(x=>`<span class="tag">${escapeHtml(x)}</span>`).join('')||'<span class="small">—</span>';
+  const tagsBad=(arr)=>(arr||[]).map(x=>`<span class="tag bad">${escapeHtml(x)}</span>`).join('')||'<span class="small">—</span>';
+  document.getElementById('mem-display').innerHTML=`
+    <div class="card mem-item"><h4>🎙️ Ton détecté</h4><div>${escapeHtml(m.ton||'—')}</div></div>
+    <div class="card mem-item"><h4>🎯 Cible adressée</h4><div>${escapeHtml(m.cible||'—')}</div></div>
+    <div class="card mem-item"><h4>🔑 Mots-clés utilisés</h4><div>${tags(m.mots_cles)}</div></div>
+    <div class="card mem-item"><h4>🚫 Mots à éviter</h4><div>${tagsBad(m.mots_interdits)}</div></div>
+    <div class="card mem-item" style="grid-column:1/-1"><h4>💎 Valeurs de la marque</h4><div>${tags(m.valeurs)}</div></div>`;
+}
+
+function switchTab(name,btn){
+  document.querySelectorAll('#dash-brand .tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#dash-brand .tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+/* ---- Brand Memory : modifier / re-analyser ---- */
+async function editMemory(){
+  const m=state.selectedBrand.brand_memory||{};
+  const ton=prompt('Ton détecté :', m.ton||''); if(ton===null) return;
+  const cles=prompt('Mots-clés (séparés par des virgules) :', (m.mots_cles||[]).join(', '));
+  const interdits=prompt('Mots à éviter (séparés par des virgules) :', (m.mots_interdits||[]).join(', '));
+  const cible=prompt('Cible :', m.cible||'');
+  const valeurs=prompt('Valeurs (séparées par des virgules) :', (m.valeurs||[]).join(', '));
+  const updated={ ton, mots_cles:splitList(cles), mots_interdits:splitList(interdits), cible, valeurs:splitList(valeurs) };
+  loader(true,'Enregistrement...');
+  const { error }=await db.from('brands').update({ brand_memory:updated }).eq('id',state.selectedBrand.id);
+  loader(false);
+  if(error){ showToast('Erreur : '+error.message,'err'); return; }
+  state.selectedBrand.brand_memory=updated; renderMemory(); showToast('Brand Memory mise à jour ✓','ok');
+}
+async function reanalyze(){
+  if(!state.selectedBrand.contenu_source){ showToast('Aucun contenu source à ré-analyser.','err'); return; }
+  loader(true,'Analyse en cours... L\'IA extrait la voix de votre marque');
+  const mem=await callExtract(state.selectedBrand.contenu_source);
+  const { error }=await db.from('brands').update({ brand_memory:mem }).eq('id',state.selectedBrand.id);
+  loader(false);
+  if(error){ showToast('Erreur : '+error.message,'err'); return; }
+  state.selectedBrand.brand_memory=mem; renderMemory(); showToast('Brand Memory ré-analysée ✓','ok');
+}
+
+/* =========================================================================
+   GÉNÉRATION DE CONTENU
+   ========================================================================= */
+async function doGenerate(){
+  const sujet=document.getElementById('gen-sujet').value.trim();
+  if(!sujet){ showToast('Indiquez d\'abord un sujet.','err'); return; }
+  const formats=[...document.querySelectorAll('#gen-formats input:checked')].map(c=>c.value);
+  if(!formats.length){ showToast('Choisissez au moins un format.','err'); return; }
+  await generateFor(sujet,formats,false);
+}
+async function declineFormats(){
+  if(!state.lastGen) return;
+  const all=[...document.querySelectorAll('#gen-formats input')].map(c=>c.value);
+  const remaining=all.filter(f=>!state.lastGen.formats.includes(f));
+  if(!remaining.length){ showToast('Tous les formats ont déjà été générés.','ok'); return; }
+  await generateFor(state.lastGen.sujet,remaining,true);
+}
+async function generateFor(sujet,formats,append){
+  loader(true,'Génération en cours...');
+  const box=document.getElementById('gen-results');
+  if(!append) box.innerHTML='';
+  for(const format of formats){
+    const contenu=await callGenerate(state.selectedBrand,sujet,format);
+    // Enregistrer dans generated_contents
+    await db.from('generated_contents').insert({
+      brand_id:state.selectedBrand.id, user_id:state.user.id, sujet, format, contenu
     });
-  </script>
+    box.appendChild(renderResult(format,contenu));
+  }
+  state.lastGen={ sujet, formats:[...(state.lastGen&&append?state.lastGen.formats:[]),...formats] };
+  document.getElementById('gen-decline').style.display='inline-block';
+  loader(false);
+  showToast('Contenu généré et enregistré ✓','ok');
+}
+function renderResult(format,contenu){
+  const div=document.createElement('div');
+  div.className='card result-card';
+  div.innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="badge">${escapeHtml(format)}</span><button class="btn-secondary btn-sm">Copier</button></div><pre></pre>`;
+  div.querySelector('pre').textContent=contenu;
+  const btn=div.querySelector('button');
+  btn.onclick=()=>{ navigator.clipboard.writeText(contenu); btn.textContent='Copié ✓'; setTimeout(()=>btn.textContent='Copier',1600); };
+  return div;
+}
+
+/* =========================================================================
+   CALENDRIER ÉDITORIAL
+   ========================================================================= */
+async function doCalendar(){
+  const periode=document.getElementById('cal-periode').value;
+  const freq=document.getElementById('cal-freq').value;
+  const reseaux=[...document.querySelectorAll('.cal-net:checked')].map(c=>c.value);
+  if(!reseaux.length){ showToast('Choisissez au moins un réseau.','err'); return; }
+  loader(true,'Génération du calendrier...');
+  const items=await callCalendar(state.selectedBrand,periode,reseaux,freq);
+  loader(false);
+  const box=document.getElementById('cal-results'); box.innerHTML='';
+  items.forEach(it=>{
+    const c=document.createElement('div');
+    c.className='card cal-cell';
+    c.innerHTML=`<div class="date">${escapeHtml(it.date)}</div><div class="net">${NET_ICON[it.reseau]||'📡'} ${escapeHtml(it.reseau)}</div><div style="font-weight:600;margin-bottom:6px">${escapeHtml(it.sujet)}</div><div class="small" style="margin-bottom:12px">${escapeHtml(it.angle||'')}</div><button class="btn-secondary btn-sm" style="width:100%">Générer ce contenu</button>`;
+    c.querySelector('button').onclick=()=>prefillGenerate(it.sujet,it.reseau);
+    box.appendChild(c);
+  });
+  showToast('Calendrier généré ✓','ok');
+}
+const NET_TO_FORMAT = { LinkedIn:'Post LinkedIn', Instagram:'Caption Instagram', Email:'Email newsletter', X:'Thread X (Twitter)', Facebook:'Post Facebook' };
+function prefillGenerate(sujet,reseau){
+  document.querySelector('#dash-brand .tabs button:nth-child(2)').click();
+  document.getElementById('gen-sujet').value=sujet;
+  document.querySelectorAll('#gen-formats input').forEach(c=>{ c.checked = (c.value===NET_TO_FORMAT[reseau]); });
+  showToast('Sujet pré-rempli — cliquez sur Générer.','ok');
+}
+
+/* =========================================================================
+   COUCHE IA  (DEMO_MODE = simulation locale réaliste)
+   Pour la vraie IA : remplacez le contenu de ces fonctions par un appel
+   fetch() vers une Edge Function Supabase qui détient la clé Anthropic.
+   ========================================================================= */
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+async function callExtract(contenu){
+  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function */ }
+  await wait(1400);
+  // Simulation : on dérive une Brand Memory plausible à partir du texte fourni.
+  const tons=['Chaleureux et direct','Inspirant et accessible','Expert et rassurant','Audacieux et complice','Sobre et premium'];
+  const pick=arr=>arr[Math.floor(contenu.length/7)%arr.length];
+  return {
+    ton: pick(tons),
+    mots_cles:['authenticité','impact','communauté','clarté','proximité'],
+    mots_interdits:['révolutionnaire','disruptif','game-changer'],
+    cible:'Dirigeants et responsables marketing de PME, 30-50 ans',
+    valeurs:['Transparence','Performance','Humain']
+  };
+}
+
+async function callGenerate(brand,sujet,format){
+  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function */ }
+  await wait(1100);
+  const m=brand.brand_memory||{};
+  const cles=(m.mots_cles||[]).slice(0,3).join(', ');
+  const hashtags=(m.mots_cles||[]).map(k=>'#'+k.replace(/\s+/g,'')).slice(0,4).join(' ');
+  const cible=m.cible||'votre audience';
+  const ton=m.ton||'authentique';
+  switch(format){
+    case 'Post LinkedIn':
+      return `${sujet} — parlons-en franchement.\n\nChez ${brand.nom}, on croit qu'on peut faire les choses autrement : avec ${cles}.\n\nCe qui compte vraiment pour ${cible.toLowerCase()}, ce n'est pas le bruit, c'est l'impact réel.\n\nVoici notre conviction sur « ${sujet} » : la cohérence bat la quantité, à chaque fois.\n\nEt vous, comment abordez-vous ce sujet ?\n\n${hashtags}`;
+    case 'Caption Instagram':
+      return `✨ ${sujet}\n\nOn vous partage notre vision, ton ${ton.toLowerCase()} 💬\nParce que ${cles}, ça change tout.\n\n👉 Dites-nous en commentaire ce que vous en pensez !\n\n${hashtags}`;
+    case 'Email newsletter':
+      return `Objet : ${sujet}\n\nBonjour,\n\nChez ${brand.nom}, on a réfléchi à « ${sujet} » — et on voulait vous partager l'essentiel, sans détour.\n\nNotre approche tient en trois mots : ${cles}.\nPour ${cible.toLowerCase()}, ça se traduit par des résultats concrets, pas des promesses.\n\nÀ très vite,\nL'équipe ${brand.nom}`;
+    case 'Thread X (Twitter)':
+      return `1/ ${sujet} 🧵\n\n2/ La plupart des marques compliquent tout. Nous, chez ${brand.nom}, on mise sur ${cles}.\n\n3/ Pourquoi ? Parce que ${cible.toLowerCase()} n'a pas besoin de jargon, mais de clarté.\n\n4/ Notre conviction : la cohérence sur la durée bat le coup d'éclat ponctuel.\n\n5/ Si ce thread vous a parlé, partagez-le 🔁`;
+    case 'Post Facebook':
+      return `${sujet} 👋\n\nUn mot rapide de l'équipe ${brand.nom} : on avance avec ${cles}, et toujours dans le même esprit ${ton.toLowerCase()}.\n\nOn écrit pour ${cible.toLowerCase()}, et votre avis nous intéresse vraiment. Dites-nous tout en commentaire 👇`;
+    default:
+      return `${sujet}\n\nContenu généré pour ${brand.nom}.`;
+  }
+}
+
+async function callCalendar(brand,periode,reseaux,freq){
+  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function */ }
+  await wait(1200);
+  const count = freq==='quotidien' ? (periode==='mois'?20:7) : (periode==='mois'? (parseInt(freq)*4) : parseInt(freq));
+  const sujets=[`Coulisses de ${brand.nom}`,'Une erreur fréquente à éviter','Témoignage client','Notre méthode en 3 étapes','Question à notre communauté','Tendance du secteur','Astuce concrète et actionnable','Notre vision sur l\'avenir du métier'];
+  const angles=['Storytelling','Pédagogique','Preuve sociale','Engagement','Inspiration','Expertise'];
+  const items=[];
+  // Dates relatives sans Date.now() : on étale sur la période choisie.
+  for(let i=0;i<count;i++){
+    const reseau=reseaux[i%reseaux.length];
+    const jour=(i+1)*(periode==='mois'?2:1);
+    items.push({ date:`J+${jour}`, reseau, sujet:sujets[i%sujets.length], angle:angles[i%angles.length] });
+  }
+  return items;
+}
+
+/* =========================================================================
+   CRÉATION / ÉDITION DE MARQUE (3 étapes)
+   ========================================================================= */
+function openBrandEditor(){
+  const limit=PLAN_LIMIT[state.profile?.plan||'solo'];
+  if(state.brands.length>=limit){
+    showToast(`Votre plan ${PLAN_LABEL[state.profile.plan]} est limité à ${limit} marque(s). Passez à un plan supérieur.`,'err');
+    return;
+  }
+  state.beDraft={ couleur:'#7C5CFC' };
+  document.getElementById('be-nom').value=''; document.getElementById('be-site').value='';
+  document.getElementById('be-source').value=''; document.getElementById('be-couleur').value='#7C5CFC';
+  beShowStep(1);
+  show('view-brand-editor');
+}
+function beShowStep(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('be-step-'+i).style.display = (i===n)?'block':'none';
+    document.getElementById('step-bar-'+i).classList.toggle('done', i<=n);
+  });
+}
+function beBack(from){ beShowStep(from-1); }
+function beNext(from){
+  const nom=document.getElementById('be-nom').value.trim();
+  if(!nom){ showToast('Le nom de la marque est obligatoire.','err'); return; }
+  state.beDraft.nom=nom;
+  state.beDraft.secteur=document.getElementById('be-secteur').value;
+  state.beDraft.site_web=document.getElementById('be-site').value.trim();
+  state.beDraft.couleur=document.getElementById('be-couleur').value;
+  beShowStep(2);
+}
+async function beAnalyze(){
+  const source=document.getElementById('be-source').value.trim();
+  if(source.length<30){ showToast('Collez un peu plus de contenu pour une bonne analyse.','err'); return; }
+  state.beDraft.contenu_source=source;
+  loader(true,'Analyse en cours... L\'IA extrait la voix de votre marque');
+  const mem=await callExtract(source);
+  loader(false);
+  document.getElementById('be-ton').value=mem.ton;
+  document.getElementById('be-cles').value=(mem.mots_cles||[]).join(', ');
+  document.getElementById('be-interdits').value=(mem.mots_interdits||[]).join(', ');
+  document.getElementById('be-cible').value=mem.cible;
+  document.getElementById('be-valeurs').value=(mem.valeurs||[]).join(', ');
+  beShowStep(3);
+}
+async function beSave(){
+  const brand_memory={
+    ton:document.getElementById('be-ton').value.trim(),
+    mots_cles:splitList(document.getElementById('be-cles').value),
+    mots_interdits:splitList(document.getElementById('be-interdits').value),
+    cible:document.getElementById('be-cible').value.trim(),
+    valeurs:splitList(document.getElementById('be-valeurs').value)
+  };
+  loader(true,'Création de la marque...');
+  const { data, error }=await db.from('brands').insert({
+    user_id:state.user.id, nom:state.beDraft.nom, secteur:state.beDraft.secteur,
+    site_web:state.beDraft.site_web, couleur:state.beDraft.couleur,
+    contenu_source:state.beDraft.contenu_source, brand_memory
+  }).select().single();
+  loader(false);
+  if(error){ showToast('Erreur : '+error.message,'err'); return; }
+  state.brands.unshift(data);
+  state.selectedBrand=data;   // sélection automatique
+  showDashboard();
+  showToast('Marque créée ✓','ok');
+}
+
+/* =========================================================================
+   CAPTURE DE LEADS (landing)
+   ========================================================================= */
+let leadPlan='solo';
+function openLead(plan){ leadPlan=plan; document.getElementById('lead-modal').classList.add('show'); }
+function closeLead(){ document.getElementById('lead-modal').classList.remove('show'); }
+async function submitLead(){
+  const prenom=document.getElementById('lead-prenom').value.trim();
+  const email=document.getElementById('lead-email').value.trim();
+  if(!email){ showToast('Indiquez votre email.','err'); return; }
+  await db.from('leads').insert({ email, prenom, plan_interesse:leadPlan, source:'landing' });
+  closeLead();
+  showToast('Merci ! Créez votre compte pour démarrer.','ok');
+  document.getElementById('su-prenom').value=prenom; document.getElementById('su-email').value=email;
+  showAuth('signup');
+}
+
+/* ---------- divers ---------- */
+function escapeHtml(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* =========================================================================
+   INITIALISATION : session existante ?
+   ========================================================================= */
+(async function init(){
+  const { data:{ session } } = await db.auth.getSession();
+  if(session){ await afterLogin(); } else { showLanding(); }
+})();
+</script>
 </body>
 </html>

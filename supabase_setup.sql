@@ -1,0 +1,104 @@
+-- =====================================================================
+--  Brief to Brand — Configuration de la base de données Supabase
+--  À coller dans : Supabase → SQL Editor → New query → Run
+--  (Vous pouvez tout coller d'un coup et cliquer sur "Run".)
+-- =====================================================================
+
+-- ---------- TABLE : profiles ----------
+create table if not exists public.profiles (
+  id          uuid primary key references auth.users(id) on delete cascade,
+  prenom      text,
+  email       text,
+  plan        text not null default 'solo',
+  created_at  timestamptz not null default now()
+);
+
+-- ---------- TABLE : brands ----------
+create table if not exists public.brands (
+  id             uuid primary key default gen_random_uuid(),
+  user_id        uuid not null references public.profiles(id) on delete cascade,
+  nom            text not null,
+  secteur        text,
+  site_web       text,
+  couleur        text,
+  contenu_source text,
+  brand_memory   jsonb,
+  created_at     timestamptz not null default now()
+);
+
+-- ---------- TABLE : generated_contents ----------
+create table if not exists public.generated_contents (
+  id          uuid primary key default gen_random_uuid(),
+  brand_id    uuid not null references public.brands(id) on delete cascade,
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  sujet       text,
+  format      text,
+  contenu     text,
+  created_at  timestamptz not null default now()
+);
+
+-- ---------- TABLE : leads ----------
+create table if not exists public.leads (
+  id              uuid primary key default gen_random_uuid(),
+  email           text,
+  prenom          text,
+  plan_interesse  text,
+  source          text,
+  created_at      timestamptz not null default now()
+);
+
+-- =====================================================================
+--  SÉCURITÉ (Row Level Security)
+-- =====================================================================
+alter table public.profiles           enable row level security;
+alter table public.brands             enable row level security;
+alter table public.generated_contents enable row level security;
+alter table public.leads              enable row level security;
+
+-- profiles : chacun ne voit / modifie que son propre profil
+drop policy if exists "profiles_select_own" on public.profiles;
+create policy "profiles_select_own" on public.profiles for select using (auth.uid() = id);
+drop policy if exists "profiles_update_own" on public.profiles;
+create policy "profiles_update_own" on public.profiles for update using (auth.uid() = id);
+drop policy if exists "profiles_insert_own" on public.profiles;
+create policy "profiles_insert_own" on public.profiles for insert with check (auth.uid() = id);
+
+-- brands : chacun gère uniquement ses marques
+drop policy if exists "brands_all_own" on public.brands;
+create policy "brands_all_own" on public.brands for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- generated_contents : chacun gère uniquement ses contenus
+drop policy if exists "contents_all_own" on public.generated_contents;
+create policy "contents_all_own" on public.generated_contents for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- leads : insertion publique (capture depuis la landing), pas de lecture publique
+drop policy if exists "leads_insert_public" on public.leads;
+create policy "leads_insert_public" on public.leads for insert
+  to anon, authenticated with check (true);
+
+-- =====================================================================
+--  Création automatique du profil à l'inscription
+-- =====================================================================
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, prenom, email, plan)
+  values (new.id, new.raw_user_meta_data->>'prenom', new.email, 'solo')
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- =====================================================================
+--  Terminé. Vous devriez voir "Success. No rows returned".
+-- =====================================================================
