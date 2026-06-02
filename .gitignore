@@ -1,0 +1,16 @@
+# Secrets — NE JAMAIS committer de mots de passe ou tokens
+.env
+.env.*
+*.key
+*.pem
+secrets.*
+
+# Dépendances (au cas où)
+node_modules/
+
+# Fichiers système / éditeur
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
