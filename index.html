@@ -1397,18 +1397,52 @@ function prefillGenerate(sujet,reseau){
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
 async function callExtract(contenu){
-  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function */ }
+  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function (vraie analyse Claude) */ }
   await wait(1400);
-  // Simulation : on dérive une Brand Memory plausible à partir du texte fourni.
-  const tons=['Chaleureux et direct','Inspirant et accessible','Expert et rassurant','Audacieux et complice','Sobre et premium'];
-  const pick=arr=>arr[Math.floor(contenu.length/7)%arr.length];
-  return {
-    ton: pick(tons),
-    mots_cles:['authenticité','impact','communauté','clarté','proximité'],
-    mots_interdits:['révolutionnaire','disruptif','game-changer'],
-    cible:'Dirigeants et responsables marketing de PME, 30-50 ans',
-    valeurs:['Transparence','Performance','Humain']
-  };
+  return analyzeBrandText(contenu||'');
+}
+// Analyse réelle (légère) du texte fourni : mots-clés, ton, cible, valeurs personnalisés.
+function analyzeBrandText(text){
+  const cap=s=>s?s.charAt(0).toUpperCase()+s.slice(1):s;
+  const low=text.toLowerCase();
+  const STOP=new Set(('le la les un une des de du au aux et en à dans sur sous avec sans pour par chez vers est sont être suis êtes ont avons avez ai as ne pas plus moins très trop tout tous toute toutes on nous vous ils elles elle mon ton son notre votre leur leurs mes tes ses nos vos cela ceci cette cet ces que qui quoi dont où mais donc car comme quand alors aussi encore déjà depuis entre fait faire avoir cette nos vos votre notre quil cest nest sest dune dun nos plus afin aussi être leurs vers').split(' '));
+  const tokens=(low.match(/[a-zàâäéèêëïîôöùûüçœ]{4,}/g)||[]).filter(w=>!STOP.has(w));
+  const freq={}; tokens.forEach(w=>freq[w]=(freq[w]||0)+1);
+  const ranked=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]);
+  // Mots-clés = mots les plus fréquents du texte
+  const mots_cles=ranked.slice(0,5);
+  // Ton : détecté à partir des signaux du texte
+  const exclam=(text.match(/!/g)||[]).length;
+  const interro=(text.match(/\?/g)||[]).length;
+  const emojis=(text.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu)||[]).length;
+  const tu=/\b(tu|ton|tes|toi)\b/i.test(text);
+  const vous=/\b(vous|votre|vos)\b/i.test(text);
+  const phrases=text.split(/[.!?]+/).filter(s=>s.trim().length>0);
+  const avgLen=tokens.length/Math.max(1,phrases.length);
+  let tones=[];
+  if(emojis>=2 || exclam>=3) tones.push('chaleureux');
+  if(tu && !vous) tones.push('proche et complice');
+  else if(vous) tones.push('professionnel');
+  if(interro>=2) tones.push('engageant');
+  if(avgLen>20) tones.push('expert');
+  if(!tones.length) tones.push('clair et posé');
+  const ton=cap(tones.slice(0,3).join(', '));
+  // Mots à éviter : clichés marketing réellement présents (sinon défaut)
+  const BUZZ=['révolutionnaire','disruptif','game-changer','game changer','incontournable','leader','synergie','innovant','révolution','ultime','exceptionnel','meilleur du marché','best'];
+  const foundBuzz=BUZZ.filter(b=>low.includes(b));
+  const mots_interdits=(foundBuzz.length?foundBuzz:['révolutionnaire','disruptif','incontournable']).slice(0,4);
+  // Cible : déduite d'indices dans le texte
+  const CIBLES=[[/pme|tpe|petites entreprises/,'Dirigeants de PME / TPE'],[/dirigeant|gérant|patron|ceo|décideur/,'Dirigeants et décideurs'],[/entrepreneur|solopreneur|freelance|indépendant/,'Entrepreneurs et indépendants'],[/marketing|communication/,'Responsables marketing & communication'],[/\bfemmes?\b/,'Une audience féminine'],[/jeunes|étudiant/,'Jeunes adultes'],[/b2b|professionnels/,'Professionnels (B2B)'],[/parents|famille/,'Familles et parents'],[/client|consommateur/,'Clients particuliers']];
+  let cible=null; for(const [re,lab] of CIBLES){ if(re.test(low)){ cible=lab; break; } }
+  if(!cible) cible='Audience à préciser — affinez avec plus de contenus';
+  // Valeurs : valeurs détectées dans le contenu
+  const VALS=['transparence','qualité','proximité','innovation','engagement','durabilité','humain','performance','écoute','authenticité','passion','excellence','simplicité','confiance','créativité','respect','partage','liberté','accompagnement','bienveillance'];
+  let valeurs=VALS.filter(v=>low.includes(v)).slice(0,3).map(cap);
+  if(valeurs.length<2){ valeurs=valeurs.concat(ranked.slice(0,3).map(cap)).filter((v,i,a)=>a.indexOf(v)===i).slice(0,3); }
+  if(!valeurs.length) valeurs=['Authenticité','Qualité'];
+  // Garde-fous si le texte est trop court
+  if(!mots_cles.length) return { ton:'Clair et posé', mots_cles:['clarté','impact'], mots_interdits, cible, valeurs };
+  return { ton, mots_cles, mots_interdits, cible, valeurs };
 }
 
 async function callGenerate(brand,sujet,format){
