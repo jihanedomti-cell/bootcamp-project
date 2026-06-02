@@ -20,10 +20,61 @@
     h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
     p  { font-size: 1.25rem; color: #94a3b8; }
     .ok { color: #4ade80; font-weight: bold; }
+    button {
+      margin-top: 1.5rem;
+      padding: 0.8rem 1.6rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: #4ade80;
+      color: #0f172a;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #22c55e; }
+    #status { margin-top: 1rem; font-size: 1rem; min-height: 1.5rem; }
   </style>
 </head>
 <body>
   <h1>Projet Bootcamp</h1>
   <p class="ok">ça marche ✅</p>
+
+  <button id="test-btn">Tester l'écriture dans Supabase</button>
+  <div id="status"></div>
+
+  <!-- Client Supabase chargé par CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // --- Configuration Supabase ---
+    // La clé "publishable" est PUBLIQUE par conception : aucun risque à la mettre ici.
+    // La sécurité réelle repose sur les règles RLS configurées côté Supabase.
+    const SUPABASE_URL = "https://xzxsgjfehfifytflokhf.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_hretB8OfpdTt_weA_Uf8Ag_hV_cCT3L";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // --- Test d'écriture dans la table "events" ---
+    const btn = document.getElementById("test-btn");
+    const statusEl = document.getElementById("status");
+
+    btn.addEventListener("click", async () => {
+      statusEl.textContent = "Envoi en cours…";
+      statusEl.style.color = "#94a3b8";
+
+      const { data, error } = await supabase
+        .from("events")
+        .insert({ type: "test-bouton" })
+        .select();
+
+      if (error) {
+        statusEl.textContent = "❌ Erreur : " + error.message;
+        statusEl.style.color = "#f87171";
+        console.error(error);
+      } else {
+        statusEl.textContent = "✅ Écrit dans Supabase ! (id " + data[0].id + ")";
+        statusEl.style.color = "#4ade80";
+      }
+    });
+  </script>
 </body>
 </html>
