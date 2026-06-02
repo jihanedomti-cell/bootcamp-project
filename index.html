@@ -71,6 +71,41 @@
   .btn-danger { background: transparent; color: var(--error); border: 1.5px solid var(--error); border-radius: 6px; padding: 9px 16px; font-size: 13px; font-weight: 600; }
   .btn-danger:hover { background: var(--error); color: #fff; }
 
+  /* Variantes */
+  .variant-card { border: 1.5px solid var(--border); border-radius: 8px; padding: 14px 16px; cursor: pointer; margin-bottom: 10px; transition: all 0.15s; background: var(--white); }
+  .variant-card:hover { border-color: var(--yellow); }
+  .variant-card.active { border-color: var(--yellow); background: var(--yellow-light); }
+  .variant-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #7A6500; margin-bottom: 4px; }
+  .variant-preview { font-size: 12px; color: var(--text-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* Aperçus de post */
+  .post-preview { border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--white); max-width: 480px; }
+  .preview-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
+  .preview-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600; flex-shrink: 0; }
+  .preview-avatar-ig { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+  .preview-name { font-size: 14px; font-weight: 600; color: var(--text-main); }
+  .preview-subtitle { font-size: 12px; opacity: 0.6; font-weight: 400; }
+  .preview-time { font-size: 12px; opacity: 0.5; }
+  .preview-follow { margin-left: auto; font-size: 13px; font-weight: 600; opacity: 0.8; cursor: pointer; color: var(--text-main); }
+  .preview-more { font-size: 18px; opacity: 0.6; }
+  .preview-body { padding: 0 16px 14px; font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: var(--text-main); }
+  .preview-image-placeholder { height: 180px; background: var(--bg-section); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-size: 24px; opacity: 0.6; }
+  .preview-image-placeholder span { font-size: 13px; }
+  .preview-stats { padding: 8px 16px; font-size: 12px; opacity: 0.6; display: flex; justify-content: space-between; border-top: 1px solid var(--border); color: var(--text-main); }
+  .preview-actions { display: flex; padding: 4px 8px; border-top: 1px solid var(--border); }
+  .preview-actions span { flex: 1; text-align: center; padding: 8px; font-size: 13px; font-weight: 500; opacity: 0.7; cursor: pointer; color: var(--text-main); }
+  .preview-actions span:hover { opacity: 1; background: var(--bg-section); border-radius: 8px; }
+  .email-header-bar { background: var(--bg-section); border-bottom: 1px solid var(--border); padding: 12px 16px; font-size: 13px; opacity: 0.85; display: flex; flex-direction: column; gap: 4px; color: var(--text-main); }
+  .email-body { padding: 20px 16px; color: var(--text-main); }
+  .email-greeting { font-size: 14px; margin-bottom: 14px; font-weight: 500; }
+  .email-content { font-size: 14px; line-height: 1.8; white-space: pre-wrap; }
+  .email-signature { margin-top: 20px; font-size: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .preview-twitter-actions { display: flex; gap: 24px; padding: 10px 16px; border-top: 1px solid var(--border); font-size: 13px; opacity: 0.6; color: var(--text-main); }
+  .preview-fb-stats { padding: 8px 16px; font-size: 12px; opacity: 0.6; display: flex; justify-content: space-between; border-top: 1px solid var(--border); color: var(--text-main); }
+  .preview-fb-actions { display: flex; padding: 4px 8px; border-top: 1px solid var(--border); }
+  .preview-fb-actions span { flex: 1; text-align: center; padding: 8px; font-size: 13px; font-weight: 500; opacity: 0.7; cursor: pointer; color: var(--text-main); }
+  .preview-fb-actions span:hover { opacity: 1; background: var(--bg-section); border-radius: 8px; }
+
   /* Cartes */
   .card { background: var(--white); border: 1.5px solid var(--border); border-radius: 12px; padding: 28px; transition: all 0.2s ease; position: relative; }
   .card:hover { transform: translateY(-3px); box-shadow: 4px 4px 0px var(--yellow); border-color: var(--yellow); }
@@ -661,7 +696,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const DEMO_MODE = true;
 
 /* ---------- État global ---------- */
-let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true, calMonth: null, calendarItems: [] };
+let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true, calMonth: null, calendarItems: [], currentVariants: [], selectedVariantIdx: 0, genRowId: null };
 
 /* ---------- Utilitaires UI ---------- */
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
@@ -859,6 +894,7 @@ function renderChannelView(){
   document.getElementById('gen-results').innerHTML='';
   document.getElementById('gen-decline').style.display='none';
   state.lastGen=null;
+  state.currentVariants=[]; state.selectedVariantIdx=0; state.genRowId=null;
 }
 function selectFormat(f,el){
   state.selectedFormat=f;
@@ -980,34 +1016,149 @@ async function doGenerate(){
   const sujet=document.getElementById('gen-sujet').value.trim();
   if(!sujet){ showToast('Indiquez d\'abord un sujet.','err'); return; }
   if(!state.currentChannel || !state.selectedFormat){ showToast('Choisissez un format.','err'); return; }
-  await generateFormats(sujet,[state.selectedFormat],false);
+  await generateVariants(sujet, state.selectedFormat);
 }
+// "Décliner en d'autres formats" : passe au format suivant du canal et régénère 3 variantes
 async function declineFormats(){
   const sujet=document.getElementById('gen-sujet').value.trim();
   if(!sujet || !state.currentChannel) return;
-  const done=(state.lastGen&&state.lastGen.done)||[];
-  const remaining=CHANNELS[state.currentChannel].formats.filter(f=>!done.includes(f));
-  if(!remaining.length){ showToast('Tous les formats de ce canal ont déjà été générés.','ok'); return; }
-  await generateFormats(sujet,remaining,true);
+  const formats=CHANNELS[state.currentChannel].formats;
+  const next=formats[formats.indexOf(state.selectedFormat)+1];
+  if(!next){ showToast('Tous les formats de ce canal ont été explorés.','ok'); return; }
+  state.selectedFormat=next;
+  document.querySelectorAll('#gen-formats .format-pill').forEach(b=>b.classList.toggle('active', b.textContent===next));
+  await generateVariants(sujet, next);
 }
-async function generateFormats(sujet,formats,append){
-  loader(true,'Génération en cours...');
-  const box=document.getElementById('gen-results');
-  if(!append) box.innerHTML='';
-  for(const fmt of formats){
-    const label=`${state.currentChannel} — ${fmt}`;
-    const contenu=await callGenerate(state.selectedBrand,sujet,label);
-    // Enregistrer dans generated_contents (logique inchangée)
-    await db.from('generated_contents').insert({
-      brand_id:state.selectedBrand.id, user_id:state.user.id, sujet, format:label, contenu
-    });
-    box.appendChild(renderResult(label,contenu));
+async function generateVariants(sujet, fmt){
+  loader(true,'Génération des 3 variantes...');
+  const label=`${state.currentChannel} — ${fmt}`;
+  const res=await callGenerateVariants(state.selectedBrand, sujet, label);
+  state.currentVariants=(res && res.variantes)||[];
+  state.selectedVariantIdx=0;
+  state.genRowId=null;
+  // Enregistre la variante sélectionnée (par défaut la 1ère) dans generated_contents
+  const first=state.currentVariants[0];
+  if(first){
+    const ins=await db.from('generated_contents').insert({
+      brand_id:state.selectedBrand.id, user_id:state.user.id, sujet, format:label, contenu:first.contenu
+    }).select().single();
+    if(ins && ins.data) state.genRowId=ins.data.id;
   }
-  const prevDone=(append&&state.lastGen)?state.lastGen.done:[];
-  state.lastGen={ sujet, done:[...prevDone,...formats] };
-  document.getElementById('gen-decline').style.display='inline-block';
   loader(false);
-  showToast('Contenu généré et enregistré ✓','ok');
+  renderVariants();
+  document.getElementById('gen-decline').style.display='inline-block';
+  showToast('3 variantes générées ✓','ok');
+}
+// IA simulée : renvoie 3 variantes (storytelling / liste / question). En réel : JSON de l'API Claude.
+async function callGenerateVariants(brand, sujet, format){
+  if(!DEMO_MODE){ /* TODO: fetch Edge Function, parser { "variantes": [...] } renvoyé par Claude */ }
+  await wait(1200);
+  const m=brand.brand_memory||{};
+  const cles=(m.mots_cles||[]).slice(0,3).join(', ');
+  const premier=(m.mots_cles||['la clarté'])[0];
+  const hashtags=(m.mots_cles||[]).map(k=>'#'+k.replace(/\s+/g,'')).slice(0,3).join(' ');
+  const cible=m.cible||'votre audience';
+  const ton=m.ton||'authentique';
+  const nom=brand.nom;
+  return { variantes: [
+    { titre:'Storytelling', contenu:`Il y a quelques mois, un client de ${nom} m'a confié son plus gros blocage sur « ${sujet} ».\n\nCe jour-là, j'ai compris une chose : pour ${cible.toLowerCase()}, ce qui compte ce n'est pas la théorie, mais l'impact réel — porté par ${cles}.\n\nDepuis, on aborde « ${sujet} » autrement, dans un esprit ${ton.toLowerCase()}.\n\nEt vous, quel a été votre déclic ?\n\n${hashtags}` },
+    { titre:'Liste', contenu:`${sujet} : 3 leviers concrets pour ${cible.toLowerCase()}.\n\n1. Misez sur ${premier} — c'est la base.\n2. Restez ${ton.toLowerCase()} : la cohérence bat la quantité.\n3. Passez à l'action, mesurez, ajustez.\n\nChez ${nom}, c'est exactement comme ça qu'on avance.\n\n${hashtags}` },
+    { titre:'Question', contenu:`Et si « ${sujet} » était plus simple qu'on ne le croit ?\n\nLa plupart de ${cible.toLowerCase()} se compliquent la vie. Chez ${nom}, on préfère l'essentiel : ${cles}.\n\nRésultat : un message ${ton.toLowerCase()}, qui sonne vrai.\n\nVous en êtes où, vous ?\n\n${hashtags}` }
+  ]};
+}
+function renderVariants(){
+  const box=document.getElementById('gen-results');
+  const vs=state.currentVariants||[];
+  if(!vs.length){ box.innerHTML=''; return; }
+  let left='';
+  vs.forEach((v,i)=>{
+    const apercu=(v.contenu||'').split('\n').filter(Boolean).slice(0,2).join(' ');
+    left+=`<div class="variant-card${i===state.selectedVariantIdx?' active':''}" data-i="${i}">
+      <div class="variant-label">Variante ${i+1} · ${escapeHtml(v.titre||'')}</div>
+      <div class="variant-preview">${escapeHtml(apercu)}</div>
+    </div>`;
+  });
+  box.innerHTML=`<p class="small" style="margin:10px 0 14px">3 variantes générées — cliquez pour choisir.</p>
+    <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap">
+      <div style="flex:0 0 220px">${left}</div>
+      <div style="flex:1; min-width:280px">
+        <div id="variant-preview-host"></div>
+        <button class="btn-secondary btn-sm" id="variant-copy" style="margin-top:12px">Copier</button>
+      </div>
+    </div>`;
+  box.querySelectorAll('.variant-card').forEach(c=>{ c.onclick=()=>selectVariant(+c.getAttribute('data-i'), true); });
+  document.getElementById('variant-copy').onclick=copySelectedVariant;
+  renderPreview();
+}
+function selectVariant(i, save){
+  state.selectedVariantIdx=i;
+  document.querySelectorAll('#gen-results .variant-card').forEach((c,idx)=>c.classList.toggle('active', idx===i));
+  renderPreview();
+  if(save) saveSelectedVariant();
+}
+function copySelectedVariant(){
+  const v=state.currentVariants[state.selectedVariantIdx]; if(!v) return;
+  navigator.clipboard.writeText(v.contenu);
+  const btn=document.getElementById('variant-copy');
+  if(btn){ btn.textContent='Copié ●'; btn.style.color='var(--green)'; setTimeout(()=>{ btn.textContent='Copier'; btn.style.color=''; },2000); }
+  saveSelectedVariant();
+}
+async function saveSelectedVariant(){
+  const v=state.currentVariants[state.selectedVariantIdx]; if(!v || !state.genRowId) return;
+  try{ await db.from('generated_contents').update({ contenu:v.contenu }).eq('id',state.genRowId); }catch(e){}
+}
+function renderPreview(){
+  const host=document.getElementById('variant-preview-host'); if(!host) return;
+  const v=state.currentVariants[state.selectedVariantIdx]; const txt=v?v.contenu:'';
+  const prenom=((state.profile&&state.profile.prenom)||'Vous').trim();
+  const initial=(prenom[0]||'?').toUpperCase();
+  const handle=prenom.toLowerCase().replace(/\s+/g,'');
+  const ch=state.currentChannel, e=escapeHtml;
+  let html='';
+  if(ch==='LinkedIn'){
+    html=`<div class="post-preview linkedin-preview">
+      <div class="preview-header"><div class="preview-avatar">${e(initial)}</div>
+        <div class="preview-info"><div class="preview-name">${e(prenom)} <span class="preview-subtitle">· Brief to Brand</span></div><div class="preview-time">À l'instant · 🌐</div></div>
+        <div class="preview-follow">+ Suivre</div></div>
+      <div class="preview-body">${e(txt)}</div>
+      <div class="preview-stats"><span>👍 Vous et 47 autres · 12 commentaires</span><span>3 republications</span></div>
+      <div class="preview-actions"><span>👍 J'aime</span><span>💬 Commenter</span><span>🔁 Republier</span><span>📤 Envoyer</span></div></div>`;
+  } else if(ch==='Instagram'){
+    html=`<div class="post-preview instagram-preview">
+      <div class="preview-header"><div class="preview-avatar preview-avatar-ig">${e(initial)}</div>
+        <div><div class="preview-name">${e(handle)}</div><div class="preview-subtitle">Brief to Brand</div></div>
+        <div class="preview-more" style="margin-left:auto">···</div></div>
+      <div class="preview-image-placeholder">🖼️<span>Photo / visuel du post</span></div>
+      <div style="display:flex; padding:10px 16px; font-size:18px"><span>🤍 💬 📤</span><span style="margin-left:auto">🔖</span></div>
+      <div style="padding:0 16px; font-size:14px; color:var(--text-main)"><strong>248 j'aime</strong></div>
+      <div style="padding:6px 16px 16px; font-size:14px; line-height:1.6; white-space:pre-wrap; color:var(--text-main)"><strong>${e(handle)}</strong> ${e(txt)}</div></div>`;
+  } else if(ch==='Email'){
+    const words=txt.split(/\s+/).filter(Boolean).slice(0,8).join(' ');
+    html=`<div class="post-preview email-preview">
+      <div class="email-header-bar"><div>De : ${e(prenom)} · Brief to Brand</div><div>Objet : ${e(words)}…</div></div>
+      <div class="email-body"><div class="email-greeting">Bonjour ${e(prenom)},</div>
+        <div class="email-content">${e(txt)}</div>
+        <div class="email-signature">— ${e(prenom)}<br><span style="font-size:12px;opacity:0.7">Brief to Brand</span></div></div></div>`;
+  } else if(ch==='X'){
+    html=`<div class="post-preview twitter-preview">
+      <div class="preview-header"><div class="preview-avatar">${e(initial)}</div>
+        <div><div class="preview-name">${e(prenom)} <span style="font-size:11px;opacity:0.6">@${e(handle)} · maintenant</span></div></div>
+        <div class="preview-follow">···</div></div>
+      <div class="preview-body">${e(txt)}</div>
+      <div class="preview-twitter-actions"><span>💬 12</span><span>🔁 8</span><span>❤️ 47</span><span>📊 1,2K</span><span>📤</span></div></div>`;
+  } else if(ch==='Facebook'){
+    html=`<div class="post-preview facebook-preview">
+      <div class="preview-header"><div class="preview-avatar">${e(initial)}</div>
+        <div><div class="preview-name">${e(prenom)}</div><div class="preview-time">À l'instant · 🌐</div></div>
+        <div class="preview-more" style="margin-left:auto">···</div></div>
+      <div class="preview-body">${e(txt)}</div>
+      <div class="preview-image-placeholder">🖼️<span>Photo / visuel du post</span></div>
+      <div class="preview-fb-stats"><span>👍 ❤️ 😮 · 47</span><span>12 commentaires · 3 partages</span></div>
+      <div class="preview-fb-actions"><span>👍 J'aime</span><span>💬 Commenter</span><span>↗ Partager</span></div></div>`;
+  } else {
+    html=`<div class="post-preview"><div class="preview-body">${e(txt)}</div></div>`;
+  }
+  host.innerHTML=html;
 }
 function renderResult(format,contenu){
   const div=document.createElement('div');
