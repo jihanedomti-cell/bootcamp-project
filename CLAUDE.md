@@ -37,8 +37,12 @@ par RLS. Un trigger crée automatiquement le `profile` à chaque inscription.
 4 vues commutées en JS (pas de rechargement) :
 1. **Landing** (visiteur non connecté) — hero, problème, solution, pricing, footer.
 2. **Auth** — inscription / connexion via Supabase Auth.
-3. **Dashboard** — sidebar des marques + 3 onglets : Brand Memory, Générer du
-   contenu, Calendrier éditorial.
+3. **Dashboard** — sidebar de navigation : sélecteur de marque active, puis
+   **Brand Memory**, une section **Générer du contenu** avec un item par canal
+   (LinkedIn, Instagram, Email, X, Facebook), et une section **Planning** avec
+   le **Calendrier éditorial**. Cliquer sur un canal ouvre une vue dédiée avec
+   des **pills de formats** (un seul format actif à la fois) ; la génération
+   réutilise `generateFormats()` → `callGenerate()` (logique inchangée).
 4. **Éditeur de marque** — assistant en 3 étapes :
    - Étape 1 : infos de base (nom, secteur, site, couleur).
    - Étape 2 : **upload de documents** par drag & drop (.pdf, .doc, .docx, .txt,

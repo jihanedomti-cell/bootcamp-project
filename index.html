@@ -173,6 +173,12 @@
   .brand-color-dot { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; }
   .main { flex: 1; overflow-y: auto; padding: 36px; background: var(--cream); }
   .empty-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); text-align:center; gap: 16px; }
+  .side-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--green); font-weight: 600; margin: 16px 0 6px; }
+  .side-sep { height: 1.5px; background: var(--border); margin: 12px 0; }
+  #dash-side-nav .brand-item span:first-child { width: 20px; text-align: center; flex-shrink: 0; font-weight: 700; }
+  .format-pill { padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; border: 1.5px solid var(--border); color: var(--text-muted); background: var(--white); cursor: pointer; transition: all 0.2s; }
+  .format-pill:hover { border-color: var(--peach); color: var(--dark); background: var(--peach-light); }
+  .format-pill.active { background: var(--peach-light); color: #7A3020; border-color: var(--peach); font-weight: 600; }
 
   /* Onglets (style canal Positano) */
   .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 26px; }
@@ -416,10 +422,28 @@
   </div>
   <div class="dash-body">
     <aside class="sidebar">
-      <button class="btn-primary btn-sm" style="width:100%;margin-bottom:16px;" onclick="openBrandEditor()">+ Nouvelle marque</button>
-      <div class="small" style="text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Vos marques</div>
+      <div class="side-label">Marque active</div>
       <div id="brand-list"></div>
-      <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+
+      <div class="side-sep"></div>
+
+      <nav id="dash-side-nav">
+        <a class="brand-item" id="nav-memory" onclick="navTo('memory',this)"><span>◈</span><span>Brand Memory</span></a>
+
+        <div class="side-label">Générer du contenu</div>
+        <a class="brand-item" data-channel="LinkedIn"  onclick="navChannel('LinkedIn',this)"><span>in</span><span>LinkedIn</span></a>
+        <a class="brand-item" data-channel="Instagram" onclick="navChannel('Instagram',this)"><span>◎</span><span>Instagram</span></a>
+        <a class="brand-item" data-channel="Email"     onclick="navChannel('Email',this)"><span>✉</span><span>Email</span></a>
+        <a class="brand-item" data-channel="X"         onclick="navChannel('X',this)"><span>𝕏</span><span>X / Twitter</span></a>
+        <a class="brand-item" data-channel="Facebook"  onclick="navChannel('Facebook',this)"><span>f</span><span>Facebook</span></a>
+
+        <div class="side-label">Planning</div>
+        <a class="brand-item" id="nav-calendar" onclick="navTo('calendar',this)"><span>▦</span><span>Calendrier éditorial</span></a>
+      </nav>
+
+      <div class="side-sep"></div>
+      <button class="btn-primary btn-sm" style="width:100%;margin-bottom:14px;" onclick="openBrandEditor()">+ Nouvelle marque</button>
+      <div>
         <div class="small">Plan actuel</div>
         <div class="row" style="justify-content:space-between;margin-top:6px;">
           <span class="badge" id="plan-badge">Solo</span>
@@ -443,12 +467,6 @@
           <span class="badge" id="cur-sector"></span>
         </div>
 
-        <div class="tabs">
-          <button class="active" onclick="switchTab('memory',this)">Brand Memory</button>
-          <button onclick="switchTab('generate',this)">Générer du contenu</button>
-          <button onclick="switchTab('calendar',this)">Calendrier éditorial</button>
-        </div>
-
         <!-- TAB: Brand Memory -->
         <div id="panel-memory" class="tab-panel active">
           <div class="mem-grid" id="mem-display"></div>
@@ -458,17 +476,12 @@
           </div>
         </div>
 
-        <!-- TAB: Générer -->
+        <!-- VUE CANAL : Générer du contenu -->
         <div id="panel-generate" class="tab-panel">
+          <h3 id="gen-title" style="margin-bottom:4px">LinkedIn</h3>
+          <p class="small" style="margin-bottom:18px">Choisissez un format puis décrivez votre sujet.</p>
+          <div class="format-list" id="gen-formats"></div>
           <div class="field"><label>Sujet du contenu</label><input id="gen-sujet" placeholder="Ex : Lancement de notre nouvelle offre d'accompagnement" /></div>
-          <label>Format(s)</label>
-          <div class="format-list" id="gen-formats">
-            <label><input type="checkbox" value="Post LinkedIn" checked /> Post LinkedIn</label>
-            <label><input type="checkbox" value="Caption Instagram" /> Caption Instagram</label>
-            <label><input type="checkbox" value="Email newsletter" /> Email newsletter</label>
-            <label><input type="checkbox" value="Thread X (Twitter)" /> Thread X (Twitter)</label>
-            <label><input type="checkbox" value="Post Facebook" /> Post Facebook</label>
-          </div>
           <button class="btn-primary" onclick="doGenerate()">Générer</button>
           <div id="gen-results"></div>
           <button id="gen-decline" class="btn-secondary btn-sm" style="display:none;margin-top:14px" onclick="declineFormats()">Décliner en d'autres formats</button>
@@ -597,7 +610,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const DEMO_MODE = true;
 
 /* ---------- État global ---------- */
-let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null };
+let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null };
 
 /* ---------- Utilitaires UI ---------- */
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
@@ -700,6 +713,8 @@ function renderBrand(){
   document.getElementById('cur-color').style.background=b.couleur||'#7C5CFC';
   document.getElementById('cur-sector').textContent=b.secteur||'';
   renderMemory();
+  showPanel('memory');
+  setNavActive(document.getElementById('nav-memory'));
 }
 function renderMemory(){
   const m=state.selectedBrand.brand_memory||{};
@@ -713,11 +728,55 @@ function renderMemory(){
     <div class="card mem-item" style="grid-column:1/-1"><h4>💎 Valeurs de la marque</h4><div>${tags(m.valeurs)}</div></div>`;
 }
 
-function switchTab(name,btn){
-  document.querySelectorAll('#dash-brand .tabs button').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+/* ---- Navigation par canal (sidebar) ---- */
+const CHANNELS = {
+  LinkedIn:  { title:'LinkedIn',    formats:['Post classique','Carrousel (plan)','Thread','Article long'] },
+  Instagram: { title:'Instagram',   formats:['Caption post','Story (texte)','Bio'] },
+  Email:     { title:'Email',       formats:['Newsletter','Email de vente','Email de bienvenue'] },
+  X:         { title:'X / Twitter', formats:['Tweet','Thread','Bio'] },
+  Facebook:  { title:'Facebook',    formats:['Post','Événement','Annonce groupe'] }
+};
+const RESEAU_TO_CHANNEL = { LinkedIn:'LinkedIn', Instagram:'Instagram', Email:'Email', X:'X', Facebook:'Facebook' };
+
+function showPanel(name){
   document.querySelectorAll('#dash-brand .tab-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('panel-'+name).classList.add('active');
+  const el=document.getElementById('panel-'+name); if(el) el.classList.add('active');
+}
+function setNavActive(el){
+  document.querySelectorAll('#dash-side-nav .brand-item').forEach(a=>a.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+function navTo(name,el){
+  if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
+  setNavActive(el); showPanel(name);
+}
+function navChannel(channel,el){
+  if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
+  setNavActive(el);
+  state.currentChannel=channel;
+  showPanel('generate');
+  renderChannelView();
+}
+function renderChannelView(){
+  const ch=CHANNELS[state.currentChannel]; if(!ch) return;
+  document.getElementById('gen-title').textContent=ch.title;
+  const box=document.getElementById('gen-formats'); box.innerHTML='';
+  ch.formats.forEach((f,i)=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='format-pill'+(i===0?' active':''); b.textContent=f;
+    b.onclick=()=>selectFormat(f,b);
+    box.appendChild(b);
+  });
+  state.selectedFormat=ch.formats[0];
+  document.getElementById('gen-sujet').value='';
+  document.getElementById('gen-results').innerHTML='';
+  document.getElementById('gen-decline').style.display='none';
+  state.lastGen=null;
+}
+function selectFormat(f,el){
+  state.selectedFormat=f;
+  document.querySelectorAll('#gen-formats .format-pill').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
 }
 
 /* ---- Brand Memory : modifier / re-analyser ---- */
@@ -751,30 +810,32 @@ async function reanalyze(){
 async function doGenerate(){
   const sujet=document.getElementById('gen-sujet').value.trim();
   if(!sujet){ showToast('Indiquez d\'abord un sujet.','err'); return; }
-  const formats=[...document.querySelectorAll('#gen-formats input:checked')].map(c=>c.value);
-  if(!formats.length){ showToast('Choisissez au moins un format.','err'); return; }
-  await generateFor(sujet,formats,false);
+  if(!state.currentChannel || !state.selectedFormat){ showToast('Choisissez un format.','err'); return; }
+  await generateFormats(sujet,[state.selectedFormat],false);
 }
 async function declineFormats(){
-  if(!state.lastGen) return;
-  const all=[...document.querySelectorAll('#gen-formats input')].map(c=>c.value);
-  const remaining=all.filter(f=>!state.lastGen.formats.includes(f));
-  if(!remaining.length){ showToast('Tous les formats ont déjà été générés.','ok'); return; }
-  await generateFor(state.lastGen.sujet,remaining,true);
+  const sujet=document.getElementById('gen-sujet').value.trim();
+  if(!sujet || !state.currentChannel) return;
+  const done=(state.lastGen&&state.lastGen.done)||[];
+  const remaining=CHANNELS[state.currentChannel].formats.filter(f=>!done.includes(f));
+  if(!remaining.length){ showToast('Tous les formats de ce canal ont déjà été générés.','ok'); return; }
+  await generateFormats(sujet,remaining,true);
 }
-async function generateFor(sujet,formats,append){
+async function generateFormats(sujet,formats,append){
   loader(true,'Génération en cours...');
   const box=document.getElementById('gen-results');
   if(!append) box.innerHTML='';
-  for(const format of formats){
-    const contenu=await callGenerate(state.selectedBrand,sujet,format);
-    // Enregistrer dans generated_contents
+  for(const fmt of formats){
+    const label=`${state.currentChannel} — ${fmt}`;
+    const contenu=await callGenerate(state.selectedBrand,sujet,label);
+    // Enregistrer dans generated_contents (logique inchangée)
     await db.from('generated_contents').insert({
-      brand_id:state.selectedBrand.id, user_id:state.user.id, sujet, format, contenu
+      brand_id:state.selectedBrand.id, user_id:state.user.id, sujet, format:label, contenu
     });
-    box.appendChild(renderResult(format,contenu));
+    box.appendChild(renderResult(label,contenu));
   }
-  state.lastGen={ sujet, formats:[...(state.lastGen&&append?state.lastGen.formats:[]),...formats] };
+  const prevDone=(append&&state.lastGen)?state.lastGen.done:[];
+  state.lastGen={ sujet, done:[...prevDone,...formats] };
   document.getElementById('gen-decline').style.display='inline-block';
   loader(false);
   showToast('Contenu généré et enregistré ✓','ok');
@@ -810,11 +871,11 @@ async function doCalendar(){
   });
   showToast('Calendrier généré ✓','ok');
 }
-const NET_TO_FORMAT = { LinkedIn:'Post LinkedIn', Instagram:'Caption Instagram', Email:'Email newsletter', X:'Thread X (Twitter)', Facebook:'Post Facebook' };
 function prefillGenerate(sujet,reseau){
-  document.querySelector('#dash-brand .tabs button:nth-child(2)').click();
+  const channel=RESEAU_TO_CHANNEL[reseau]||'LinkedIn';
+  const navEl=document.querySelector(`#dash-side-nav [data-channel="${channel}"]`);
+  navChannel(channel,navEl);
   document.getElementById('gen-sujet').value=sujet;
-  document.querySelectorAll('#gen-formats input').forEach(c=>{ c.checked = (c.value===NET_TO_FORMAT[reseau]); });
   showToast('Sujet pré-rempli — cliquez sur Générer.','ok');
 }
 
@@ -841,27 +902,53 @@ async function callExtract(contenu){
 }
 
 async function callGenerate(brand,sujet,format){
-  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function */ }
+  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function (appel Claude inchangé : [FORMAT]=format) */ }
   await wait(1100);
   const m=brand.brand_memory||{};
   const cles=(m.mots_cles||[]).slice(0,3).join(', ');
   const hashtags=(m.mots_cles||[]).map(k=>'#'+k.replace(/\s+/g,'')).slice(0,4).join(' ');
   const cible=m.cible||'votre audience';
   const ton=m.ton||'authentique';
-  switch(format){
-    case 'Post LinkedIn':
-      return `${sujet} — parlons-en franchement.\n\nChez ${brand.nom}, on croit qu'on peut faire les choses autrement : avec ${cles}.\n\nCe qui compte vraiment pour ${cible.toLowerCase()}, ce n'est pas le bruit, c'est l'impact réel.\n\nVoici notre conviction sur « ${sujet} » : la cohérence bat la quantité, à chaque fois.\n\nEt vous, comment abordez-vous ce sujet ?\n\n${hashtags}`;
-    case 'Caption Instagram':
-      return `✨ ${sujet}\n\nOn vous partage notre vision, ton ${ton.toLowerCase()} 💬\nParce que ${cles}, ça change tout.\n\n👉 Dites-nous en commentaire ce que vous en pensez !\n\n${hashtags}`;
-    case 'Email newsletter':
-      return `Objet : ${sujet}\n\nBonjour,\n\nChez ${brand.nom}, on a réfléchi à « ${sujet} » — et on voulait vous partager l'essentiel, sans détour.\n\nNotre approche tient en trois mots : ${cles}.\nPour ${cible.toLowerCase()}, ça se traduit par des résultats concrets, pas des promesses.\n\nÀ très vite,\nL'équipe ${brand.nom}`;
-    case 'Thread X (Twitter)':
-      return `1/ ${sujet} 🧵\n\n2/ La plupart des marques compliquent tout. Nous, chez ${brand.nom}, on mise sur ${cles}.\n\n3/ Pourquoi ? Parce que ${cible.toLowerCase()} n'a pas besoin de jargon, mais de clarté.\n\n4/ Notre conviction : la cohérence sur la durée bat le coup d'éclat ponctuel.\n\n5/ Si ce thread vous a parlé, partagez-le 🔁`;
-    case 'Post Facebook':
-      return `${sujet} 👋\n\nUn mot rapide de l'équipe ${brand.nom} : on avance avec ${cles}, et toujours dans le même esprit ${ton.toLowerCase()}.\n\nOn écrit pour ${cible.toLowerCase()}, et votre avis nous intéresse vraiment. Dites-nous tout en commentaire 👇`;
-    default:
-      return `${sujet}\n\nContenu généré pour ${brand.nom}.`;
-  }
+  const f=(format||'').toLowerCase();
+  // ----- LinkedIn -----
+  if(f.includes('carrousel'))
+    return `Plan de carrousel LinkedIn — « ${sujet} »\n\nSlide 1 · Accroche : « ${sujet} »\nSlide 2 · Le constat pour ${cible.toLowerCase()}\nSlide 3 · Pourquoi ça compte\nSlide 4 · Notre approche : ${cles}\nSlide 5 · Un exemple concret\nSlide 6 · Les résultats\nSlide 7 · Call-to-action\n\n${hashtags}`;
+  if(f.includes('article long'))
+    return `${sujet}\n\nAujourd'hui, ${cible.toLowerCase()} fait face à un même défi : trop de bruit, pas assez de cohérence.\n\nChez ${brand.nom}, notre conviction est simple : ${cles}.\n\n1. Le constat\n2. Notre méthode, pas à pas\n3. Les résultats observés\n\nLe fil rouge ? Rester ${ton.toLowerCase()}, toujours.\n\n${hashtags}`;
+  if(f.includes('linkedin') && f.includes('thread'))
+    return `1/ ${sujet} 🧵\n\n2/ Chez ${brand.nom}, on mise sur ${cles}.\n\n3/ Parce que ${cible.toLowerCase()} a besoin de clarté, pas de jargon.\n\n4/ La cohérence sur la durée bat le coup d'éclat.\n\n5/ Enregistrez ce post si ça vous parle 🔖`;
+  if(f.includes('linkedin'))
+    return `${sujet} — parlons-en franchement.\n\nChez ${brand.nom}, on croit qu'on peut faire les choses autrement : avec ${cles}.\n\nCe qui compte vraiment pour ${cible.toLowerCase()}, ce n'est pas le bruit, c'est l'impact réel.\n\nEt vous, comment abordez-vous ce sujet ?\n\n${hashtags}`;
+  // ----- Instagram -----
+  if(f.includes('story'))
+    return `STORY — « ${sujet} »\n\nÉcran 1 : « Et si « ${sujet} » changeait tout ? »\nÉcran 2 : Votre réponse, ton ${ton.toLowerCase()}\nÉcran 3 : Sticker sondage + « En savoir plus »\n\nMots-clés : ${cles}`;
+  if(f.includes('instagram') && f.includes('bio'))
+    return `${brand.nom} ✨\n${cible} · ${cles}\n👉 « ${sujet} » : on vous explique tout\n🔗 lien en bio`;
+  if(f.includes('instagram') || f.includes('caption'))
+    return `✨ ${sujet}\n\nOn vous partage notre vision, ton ${ton.toLowerCase()} 💬\nParce que ${cles}, ça change tout pour ${cible.toLowerCase()}.\n\n👉 Dites-nous en commentaire ce que vous en pensez !\n\n${hashtags}`;
+  // ----- Email -----
+  if(f.includes('vente'))
+    return `Objet : ${sujet} (à ne pas manquer)\n\nBonjour,\n\nVous hésitez encore ? Voici pourquoi « ${sujet} » peut tout changer pour ${cible.toLowerCase()}.\n\n• ${cles}\n• Un accompagnement ${ton.toLowerCase()}\n• Des résultats concrets\n\n👉 Réservez votre place dès maintenant.\n\nL'équipe ${brand.nom}`;
+  if(f.includes('bienvenue'))
+    return `Objet : Bienvenue chez ${brand.nom} 👋\n\nBonjour et merci de nous rejoindre !\n\nNotre promesse : ${cles}. On écrit pour ${cible.toLowerCase()}, sans détour et toujours ${ton.toLowerCase()}.\n\nPour commencer, découvrez « ${sujet} ».\n\nÀ très vite,\nL'équipe ${brand.nom}`;
+  if(f.includes('email') || f.includes('newsletter'))
+    return `Objet : ${sujet}\n\nBonjour,\n\nChez ${brand.nom}, on a réfléchi à « ${sujet} » — et on voulait vous partager l'essentiel, sans détour.\n\nNotre approche tient en trois mots : ${cles}.\nPour ${cible.toLowerCase()}, ça se traduit par des résultats concrets, pas des promesses.\n\nÀ très vite,\nL'équipe ${brand.nom}`;
+  // ----- X / Twitter -----
+  if(f.includes('thread'))
+    return `1/ ${sujet} 🧵\n\n2/ Chez ${brand.nom}, on mise sur ${cles}.\n\n3/ Parce que ${cible.toLowerCase()} mérite de la clarté.\n\n4/ La cohérence bat le coup d'éclat.\n\n5/ RT si ça vous parle 🔁`;
+  if(f.includes('bio'))
+    return `${brand.nom} · ${cles}\nOn aide ${cible.toLowerCase()} à « ${sujet} ».\nTon : ${ton.toLowerCase()}.`;
+  if(f.includes('tweet'))
+    return `${sujet} 👇\n\nLa vérité qu'on dit rarement à ${cible.toLowerCase()} : ${cles} > tout le reste.\n\n${hashtags}`;
+  // ----- Facebook -----
+  if(f.includes('événement') || f.includes('evenement'))
+    return `📅 ÉVÉNEMENT — « ${sujet} »\n\nRejoignez ${brand.nom} pour un moment ${ton.toLowerCase()} dédié à ${cible.toLowerCase()}.\n\nAu programme : ${cles}.\n\n👉 Cliquez sur « Participe » et invitez vos collègues !`;
+  if(f.includes('groupe') || f.includes('annonce'))
+    return `Bonjour à toutes et à tous 👋\n\nPetite annonce de ${brand.nom} : on lance « ${sujet} ».\n\nNotre fil rouge : ${cles}. Dites-nous en commentaire ce que vous en pensez !`;
+  if(f.includes('facebook') || f.includes('post'))
+    return `${sujet} 👋\n\nUn mot de l'équipe ${brand.nom} : on avance avec ${cles}, toujours dans le même esprit ${ton.toLowerCase()}.\n\nVotre avis nous intéresse — dites-nous tout en commentaire 👇`;
+  // défaut
+  return `${sujet}\n\nContenu généré pour ${brand.nom}.`;
 }
 
 async function callCalendar(brand,periode,reseaux,freq){
