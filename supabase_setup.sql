@@ -142,6 +142,15 @@ drop policy if exists "profiles_select_admin" on public.profiles;
 create policy "profiles_select_admin" on public.profiles for select
   to authenticated using (public.is_admin());
 
+-- Les admins peuvent voir ET supprimer toutes les marques (tous les comptes)
+drop policy if exists "brands_select_admin" on public.brands;
+create policy "brands_select_admin" on public.brands for select
+  to authenticated using (public.is_admin());
+
+drop policy if exists "brands_delete_admin" on public.brands;
+create policy "brands_delete_admin" on public.brands for delete
+  to authenticated using (public.is_admin());
+
 -- 👉 REMPLACEZ l'email ci-dessous par celui avec lequel VOUS vous êtes inscrite,
 --    puis exécutez. (Le compte doit déjà exister : inscrivez-vous d'abord dans l'app.)
 update public.profiles set is_admin = true where email = 'VOTRE_EMAIL_ICI';

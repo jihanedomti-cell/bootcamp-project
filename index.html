@@ -529,6 +529,8 @@
         <div id="admin-leads" style="overflow-x:auto"></div>
         <h3 style="margin:28px 0 10px">Comptes créés <span class="badge" id="admin-users-count">0</span></h3>
         <div id="admin-users" style="overflow-x:auto"></div>
+        <h3 style="margin:28px 0 10px">Marques (tous les comptes) <span class="badge" id="admin-brands-count">0</span></h3>
+        <div id="admin-brands" style="overflow-x:auto"></div>
       </div>
     </main>
   </div>
@@ -837,13 +839,40 @@ async function loadAdminData(){
   loader(true,'Chargement des données admin...');
   const r1=await db.from('leads').select('*').order('created_at',{ascending:false});
   const r2=await db.from('profiles').select('*').order('created_at',{ascending:false});
+  const r3=await db.from('brands').select('id,nom,secteur,created_at,profiles(email,prenom)').order('created_at',{ascending:false});
   loader(false);
-  if(r1.error || r2.error){ showToast('Accès admin refusé — avez-vous exécuté le SQL admin dans Supabase ?','err'); }
-  const leads=r1.data||[], users=r2.data||[];
+  if(r1.error || r2.error || r3.error){ showToast('Accès admin refusé — avez-vous exécuté le SQL admin dans Supabase ?','err'); }
+  const leads=r1.data||[], users=r2.data||[], brands=r3.data||[];
   renderAdminTable('admin-leads', leads, ['created_at','prenom','email','plan_interesse','source'], ['Date','Prénom','Email','Plan','Source']);
   document.getElementById('admin-leads-count').textContent=leads.length;
   renderAdminTable('admin-users', users, ['created_at','prenom','email','plan'], ['Date','Prénom','Email','Plan']);
   document.getElementById('admin-users-count').textContent=users.length;
+  renderAdminBrands(brands);
+  document.getElementById('admin-brands-count').textContent=brands.length;
+}
+function renderAdminBrands(rows){
+  const box=document.getElementById('admin-brands');
+  if(!rows.length){ box.innerHTML='<p class="small">Aucune marque pour l\'instant.</p>'; return; }
+  let html='<table class="admin-table"><thead><tr><th>Date</th><th>Marque</th><th>Secteur</th><th>Propriétaire</th><th></th></tr></thead><tbody>';
+  rows.forEach(b=>{
+    let d=b.created_at; if(d){ try{ d=new Date(d).toLocaleDateString('fr-FR'); }catch(e){} }
+    const owner=(b.profiles&&(b.profiles.email||b.profiles.prenom))||'—';
+    html+=`<tr><td>${escapeHtml(d||'—')}</td><td>${escapeHtml(b.nom)}</td><td>${escapeHtml(b.secteur||'—')}</td><td>${escapeHtml(owner)}</td><td><button class="btn-danger">Supprimer</button></td></tr>`;
+  });
+  html+='</tbody></table>';
+  box.innerHTML=html;
+  box.querySelectorAll('tbody button').forEach((btn,i)=>{ const b=rows[i]; btn.onclick=()=>adminDeleteBrand(b.id,b.nom); });
+}
+async function adminDeleteBrand(id,nom){
+  if(!confirm(`Supprimer définitivement la marque « ${nom} » de ce compte ?\n\nCette action est irréversible et supprime aussi ses contenus générés.`)) return;
+  loader(true,'Suppression de la marque...');
+  const { error }=await db.from('brands').delete().eq('id',id);
+  loader(false);
+  if(error){ showToast('Erreur : '+error.message,'err'); return; }
+  state.brands=state.brands.filter(x=>x.id!==id);
+  if(state.selectedBrand && state.selectedBrand.id===id){ state.selectedBrand=null; }
+  showToast('Marque supprimée ✓','ok');
+  await loadAdminData();
 }
 function renderAdminTable(id, rows, keys, headers){
   const box=document.getElementById(id);
