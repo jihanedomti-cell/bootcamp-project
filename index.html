@@ -215,6 +215,18 @@
   .cal-cell { color: var(--text-main); }
   .cal-cell .date { font-size: 13px; color: var(--green); font-weight: 600; }
   .cal-cell .net { font-size: 14px; margin: 6px 0; color: var(--text-main); }
+  /* Vrai agenda mensuel */
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text-main); text-transform: capitalize; }
+  .cal-month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .cal-dow { text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; padding-bottom: 4px; }
+  .cal-day { min-height: 96px; background: var(--white); border: 1.5px solid var(--border); border-radius: 8px; padding: 6px; font-size: 12px; }
+  .cal-day.empty { background: transparent; border: none; }
+  .cal-day.today { border-color: var(--yellow); box-shadow: 0 0 0 1.5px var(--yellow); }
+  .cal-daynum { font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
+  .cal-event { background: var(--yellow-light); border: 1px solid var(--yellow); color: #7A6500; border-radius: 6px; padding: 3px 6px; margin-bottom: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-event:hover { background: var(--peach-light); border-color: var(--peach); color: #7A3020; }
+  @media (max-width: 700px){ .cal-day { min-height: 68px; } .cal-event { font-size: 10px; padding: 2px 4px; } }
 
   /* Loader */
   #loader { position: fixed; inset: 0; background: rgba(250,250,242,0.8); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 18px; z-index: 1000; }
@@ -518,7 +530,7 @@
             </div>
           </div>
           <button class="btn-primary" onclick="doCalendar()">Générer le calendrier</button>
-          <div id="cal-results" class="cal-grid"></div>
+          <div id="cal-agenda" style="margin-top:24px"></div>
         </div>
       </div>
 
@@ -649,7 +661,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const DEMO_MODE = true;
 
 /* ---------- État global ---------- */
-let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true };
+let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true, calMonth: null, calendarItems: [] };
 
 /* ---------- Utilitaires UI ---------- */
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
@@ -757,7 +769,7 @@ function renderDashboard(){
   document.getElementById('dash-brand').style.display=hasSel?'block':'none';
   if(hasSel) renderBrand();
 }
-function selectBrand(id){ state.selectedBrand=state.brands.find(b=>b.id===id); state.lastGen=null; renderDashboard(); }
+function selectBrand(id){ state.selectedBrand=state.brands.find(b=>b.id===id); state.lastGen=null; state.calendarItems=[]; state.calMonth=null; renderDashboard(); }
 
 function renderBrand(){
   const b=state.selectedBrand;
@@ -767,6 +779,7 @@ function renderBrand(){
   renderMemory();
   showPanel('calendar');
   setNavActive(document.getElementById('nav-calendar'));
+  renderCalendarGrid();
   const delBtn=document.getElementById('btn-delete-brand');
   if(delBtn) delBtn.style.display = state.allowBrandDelete ? 'inline-block' : 'none';
 }
@@ -821,6 +834,7 @@ function navTo(name,el){
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
   exitAdmin();
   setNavActive(el); showPanel(name);
+  if(name==='calendar') renderCalendarGrid();
 }
 function navChannel(channel,el){
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
@@ -1008,23 +1022,71 @@ function renderResult(format,contenu){
 /* =========================================================================
    CALENDRIER ÉDITORIAL
    ========================================================================= */
+const MONTHS_FR=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const DOW_FR=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+function pad2(n){ return String(n).padStart(2,'0'); }
+function ymd(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
+function ensureCalMonth(){ if(!state.calMonth){ const t=new Date(); state.calMonth=new Date(t.getFullYear(), t.getMonth(), 1); } }
+function calPrev(){ ensureCalMonth(); state.calMonth=new Date(state.calMonth.getFullYear(), state.calMonth.getMonth()-1, 1); renderCalendarGrid(); }
+function calNext(){ ensureCalMonth(); state.calMonth=new Date(state.calMonth.getFullYear(), state.calMonth.getMonth()+1, 1); renderCalendarGrid(); }
+
 async function doCalendar(){
   const periode=document.getElementById('cal-periode').value;
   const freq=document.getElementById('cal-freq').value;
   const reseaux=[...document.querySelectorAll('.cal-net:checked')].map(c=>c.value);
   if(!reseaux.length){ showToast('Choisissez au moins un réseau.','err'); return; }
   loader(true,'Génération du calendrier...');
-  const items=await callCalendar(state.selectedBrand,periode,reseaux,freq);
+  const raw=await callCalendar(state.selectedBrand,periode,reseaux,freq);
   loader(false);
-  const box=document.getElementById('cal-results'); box.innerHTML='';
-  items.forEach(it=>{
-    const c=document.createElement('div');
-    c.className='card cal-cell';
-    c.innerHTML=`<div class="date">${escapeHtml(it.date)}</div><div class="net">${NET_ICON[it.reseau]||'📡'} ${escapeHtml(it.reseau)}</div><div style="font-weight:600;margin-bottom:6px">${escapeHtml(it.sujet)}</div><div class="small" style="margin-bottom:12px">${escapeHtml(it.angle||'')}</div><button class="btn-secondary btn-sm" style="width:100%">Générer ce contenu</button>`;
-    c.querySelector('button').onclick=()=>prefillGenerate(it.sujet,it.reseau);
-    box.appendChild(c);
+  // On place les contenus sur de vraies dates à partir de demain
+  const today=new Date(); today.setHours(0,0,0,0);
+  const interval = freq==='quotidien' ? 1 : (freq==='3' ? 2 : 3);
+  state.calendarItems = raw.map((it,i)=>{
+    const d=new Date(today); d.setDate(today.getDate() + 1 + i*interval);
+    return { date:ymd(d), reseau:it.reseau, sujet:it.sujet, angle:it.angle };
   });
-  showToast('Calendrier généré ✓','ok');
+  state.calMonth = state.calendarItems.length
+    ? startOfMonth(new Date(state.calendarItems[0].date+'T00:00:00'))
+    : startOfMonth(today);
+  renderCalendarGrid();
+  showToast(`${state.calendarItems.length} contenus planifiés ✓`,'ok');
+}
+
+function renderCalendarGrid(){
+  const box=document.getElementById('cal-agenda'); if(!box) return;
+  ensureCalMonth();
+  const year=state.calMonth.getFullYear(), month=state.calMonth.getMonth();
+  const daysInMonth=new Date(year, month+1, 0).getDate();
+  const startDow=(new Date(year, month, 1).getDay()+6)%7; // Lundi = 0
+  const todayStr=ymd(new Date());
+  const byDate={};
+  (state.calendarItems||[]).forEach(it=>{ (byDate[it.date]=byDate[it.date]||[]).push(it); });
+
+  let html=`<div class="cal-head">
+    <button class="btn-secondary btn-sm" onclick="calPrev()">‹ Mois précédent</button>
+    <div class="cal-title">${MONTHS_FR[month]} ${year}</div>
+    <button class="btn-secondary btn-sm" onclick="calNext()">Mois suivant ›</button>
+  </div><div class="cal-month">`;
+  DOW_FR.forEach(d=>html+=`<div class="cal-dow">${d}</div>`);
+  for(let i=0;i<startDow;i++) html+='<div class="cal-day empty"></div>';
+  for(let day=1; day<=daysInMonth; day++){
+    const dateStr=ymd(new Date(year,month,day));
+    const items=byDate[dateStr]||[];
+    html+=`<div class="cal-day${dateStr===todayStr?' today':''}"><div class="cal-daynum">${day}</div>`;
+    items.forEach((it,idx)=>{
+      html+=`<div class="cal-event" data-date="${dateStr}" data-idx="${idx}" title="${escapeHtml(it.sujet)} — ${escapeHtml(it.angle||'')}">${NET_ICON[it.reseau]||'•'} ${escapeHtml(it.sujet)}</div>`;
+    });
+    html+='</div>';
+  }
+  html+='</div>';
+  box.innerHTML=html;
+  box.querySelectorAll('.cal-event').forEach(ev=>{
+    ev.onclick=()=>{
+      const it=(byDate[ev.getAttribute('data-date')]||[])[+ev.getAttribute('data-idx')];
+      if(it) prefillGenerate(it.sujet, it.reseau);
+    };
+  });
 }
 function prefillGenerate(sujet,reseau){
   const channel=RESEAU_TO_CHANNEL[reseau]||'LinkedIn';
