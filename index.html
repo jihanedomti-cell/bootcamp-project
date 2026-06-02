@@ -537,6 +537,19 @@
             <button class="btn-secondary btn-sm" onclick="editMemory()">Modifier manuellement</button>
             <button class="btn-secondary btn-sm" onclick="reanalyze()">Re-analyser</button>
           </div>
+
+          <div style="margin-top:28px; padding-top:20px; border-top:1.5px solid var(--border)">
+            <h3 style="font-size:18px; margin-bottom:6px">Ajouter des documents</h3>
+            <p class="small" style="margin-bottom:12px">Uploadez de nouveaux contenus (PDF, Word, .txt) pour enrichir et mettre à jour la Brand Memory de cette marque.</p>
+            <div id="mem-dropzone" class="dropzone">
+              <div class="up-icon">⬆️</div>
+              <p style="font-weight:600">Glissez vos fichiers ici ou cliquez pour parcourir</p>
+              <p class="small">.pdf, .doc, .docx, .txt — maximum 5 fichiers, 10 Mo par fichier</p>
+              <input id="mem-file-input" type="file" multiple accept=".pdf,.doc,.docx,.txt" style="display:none" />
+            </div>
+            <div id="mem-file-list"></div>
+            <button class="btn-primary" id="mem-analyze-btn" style="display:none; margin-top:6px" onclick="memReanalyze()">Analyser et mettre à jour la Brand Memory</button>
+          </div>
         </div>
 
         <!-- VUE CANAL : Générer du contenu -->
@@ -696,7 +709,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const DEMO_MODE = true;
 
 /* ---------- État global ---------- */
-let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true, calMonth: null, calendarItems: [], currentVariants: [], selectedVariantIdx: 0, genRowId: null, genContext: null };
+let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true, calMonth: null, calendarItems: [], currentVariants: [], selectedVariantIdx: 0, genRowId: null, genContext: null, memFiles: [] };
 
 /* ---------- Utilitaires UI ---------- */
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
@@ -839,6 +852,9 @@ function renderMemory(){
     <div class="card mem-item"><h4>🔑 Mots-clés utilisés</h4><div>${tags(m.mots_cles)}</div></div>
     <div class="card mem-item"><h4>🚫 Mots à éviter</h4><div>${tagsBad(m.mots_interdits)}</div></div>
     <div class="card mem-item" style="grid-column:1/-1"><h4>💎 Valeurs de la marque</h4><div>${tags(m.valeurs)}</div></div>`;
+  state.memFiles=[];
+  memRenderFileList();
+  setupMemDropzone();
 }
 
 /* ---- Navigation par canal (sidebar) ---- */
@@ -1010,6 +1026,75 @@ async function reanalyze(){
   loader(false);
   if(error){ showToast('Erreur : '+error.message,'err'); return; }
   state.selectedBrand.brand_memory=mem; renderMemory(); showToast('Brand Memory ré-analysée ✓','ok');
+}
+
+/* ---- Ajout de documents sur une marque existante (depuis Brand Memory) ---- */
+let memDropzoneReady=false;
+function setupMemDropzone(){
+  if(memDropzoneReady) return; memDropzoneReady=true;
+  const dz=document.getElementById('mem-dropzone'), inp=document.getElementById('mem-file-input');
+  if(!dz||!inp) return;
+  dz.addEventListener('click',()=>inp.click());
+  inp.addEventListener('change',()=>{ memHandleFiles(inp.files); inp.value=''; });
+  ['dragover','dragenter'].forEach(ev=>dz.addEventListener(ev,e=>{ e.preventDefault(); dz.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{ e.preventDefault(); dz.classList.remove('drag'); }));
+  dz.addEventListener('drop',e=>{ if(e.dataTransfer&&e.dataTransfer.files) memHandleFiles(e.dataTransfer.files); });
+}
+function memHandleFiles(list){
+  for(const f of [...list]){
+    if(state.memFiles.length>=MAX_FILES){ showToast('Maximum 5 fichiers.','err'); break; }
+    const ext=(f.name.split('.').pop()||'').toLowerCase();
+    if(!ALLOWED.includes(ext)){ showToast('Format non supporté : '+f.name,'err'); continue; }
+    if(f.size>MAX_SIZE){ showToast('Fichier trop volumineux (>10 Mo) : '+f.name,'err'); continue; }
+    const item={ file:f, name:f.name, size:f.size, ext, progress:0, status:'processing', text:'' };
+    state.memFiles.push(item);
+    memProcessFile(item);
+  }
+  memRenderFileList();
+}
+async function memProcessFile(item){
+  try{
+    item.progress=25; memRenderFileList();
+    item.text=await extractText(item.file,item.ext);
+    item.progress=65; memRenderFileList();
+    await memUpload(item.file);
+    item.progress=100; item.status=(item.text&&item.text.trim())?'ready':'error'; memRenderFileList();
+  }catch(e){ item.progress=100; item.status=(item.text&&item.text.trim())?'ready':'error'; memRenderFileList(); }
+}
+async function memUpload(file){
+  if(!state.user||!state.selectedBrand) return;
+  try{ const path=`${state.user.id}/${state.selectedBrand.id}/${Date.now()}-${file.name}`; await db.storage.from('brand-documents').upload(path,file,{upsert:true}); }catch(e){}
+}
+function memRenderFileList(){
+  const box=document.getElementById('mem-file-list'); if(!box) return;
+  box.innerHTML='';
+  (state.memFiles||[]).forEach((it,idx)=>{
+    const row=document.createElement('div'); row.className='file-row';
+    const st=it.status==='error'?'<span style="color:var(--error)">Illisible</span>':it.status==='ready'?'<span style="color:var(--success)">Prêt ✓</span>':'Traitement…';
+    row.innerHTML=`<span style="font-size:20px">📄</span><div class="meta"><div>${escapeHtml(it.name)}</div><div class="small">${fmtSize(it.size)} · ${st}</div><div class="bar"><div style="width:${it.progress}%"></div></div></div><span class="del" title="Supprimer">✕</span>`;
+    row.querySelector('.del').onclick=()=>{ state.memFiles.splice(idx,1); memRenderFileList(); };
+    box.appendChild(row);
+  });
+  const btn=document.getElementById('mem-analyze-btn');
+  if(btn) btn.style.display = (state.memFiles||[]).some(f=>f.status==='ready'&&f.text&&f.text.trim()) ? 'inline-block' : 'none';
+}
+async function memReanalyze(){
+  const ready=(state.memFiles||[]).filter(f=>f.status==='ready'&&f.text&&f.text.trim());
+  if(!ready.length){ showToast('Ajoutez au moins un document lisible.','err'); return; }
+  loader(true,'Lecture des nouveaux documents...');
+  await wait(500);
+  const ajout=ready.map(f=>`# ${f.name}\n${f.text}`).join('\n\n---\n\n');
+  const combine=((state.selectedBrand.contenu_source||'')+'\n\n---\n\n'+ajout).trim();
+  document.getElementById('loader-msg').textContent='Mise à jour de votre Brand Memory...';
+  const mem=await callExtract(combine);
+  const { error }=await db.from('brands').update({ contenu_source:combine, brand_memory:mem }).eq('id',state.selectedBrand.id);
+  loader(false);
+  if(error){ showToast('Erreur : '+error.message,'err'); return; }
+  state.selectedBrand.contenu_source=combine;
+  state.selectedBrand.brand_memory=mem;
+  state.memFiles=[];
+  renderMemory();
+  showToast('Brand Memory mise à jour avec les nouveaux documents ✓','ok');
 }
 
 /* =========================================================================
