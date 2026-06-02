@@ -478,7 +478,7 @@
           <div class="row"><span class="brand-color-dot" id="cur-color" style="width:18px;height:18px"></span><h2 id="cur-name"></h2></div>
           <div class="row">
             <span class="badge" id="cur-sector"></span>
-            <button class="btn-danger" onclick="deleteBrand()">Supprimer</button>
+            <button class="btn-danger" id="btn-delete-brand" onclick="deleteBrand()">Supprimer</button>
           </div>
         </div>
 
@@ -525,6 +525,17 @@
       <div id="panel-admin" style="display:none">
         <h2 style="margin-bottom:4px">Espace admin</h2>
         <p class="small" style="margin-bottom:24px">Vue privée — visible uniquement par les administrateurs.</p>
+
+        <div class="card" style="margin-bottom:28px; padding:18px">
+          <div class="row" style="justify-content:space-between; gap:16px">
+            <div>
+              <div style="font-weight:600; color:var(--text-main)">Suppression de marque par les utilisateurs</div>
+              <div class="small" id="del-setting-state">Chargement…</div>
+            </div>
+            <button class="btn-secondary btn-sm" id="del-setting-toggle" onclick="toggleBrandDelete()">…</button>
+          </div>
+        </div>
+
         <h3 style="margin-bottom:10px">Prospects (landing) <span class="badge" id="admin-leads-count">0</span></h3>
         <div id="admin-leads" style="overflow-x:auto"></div>
         <h3 style="margin:28px 0 10px">Comptes créés <span class="badge" id="admin-users-count">0</span></h3>
@@ -637,7 +648,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const DEMO_MODE = true;
 
 /* ---------- État global ---------- */
-let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null };
+let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true };
 
 /* ---------- Utilitaires UI ---------- */
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
@@ -702,7 +713,12 @@ async function afterLogin(){
   }
   state.profile=profile||{ prenom:user.user_metadata?.prenom||'', plan:'solo' };
   await loadBrands();
+  await loadSettings();
   showDashboard();
+}
+async function loadSettings(){
+  const { data } = await db.from('app_settings').select('allow_brand_delete').eq('id',1).maybeSingle();
+  state.allowBrandDelete = data ? !!data.allow_brand_delete : true;
 }
 
 async function loadBrands(){
@@ -745,9 +761,12 @@ function renderBrand(){
   renderMemory();
   showPanel('memory');
   setNavActive(document.getElementById('nav-memory'));
+  const delBtn=document.getElementById('btn-delete-brand');
+  if(delBtn) delBtn.style.display = state.allowBrandDelete ? 'inline-block' : 'none';
 }
 async function deleteBrand(){
   const b=state.selectedBrand; if(!b) return;
+  if(!state.allowBrandDelete){ showToast('La suppression de marque est désactivée par l\'administrateur.','err'); return; }
   if(!confirm(`Supprimer définitivement la marque « ${b.nom} » et tous ses contenus générés ?\n\nCette action est irréversible.`)) return;
   loader(true,'Suppression de la marque...');
   const { error }=await db.from('brands').delete().eq('id',b.id);
@@ -849,6 +868,26 @@ async function loadAdminData(){
   document.getElementById('admin-users-count').textContent=users.length;
   renderAdminBrands(brands);
   document.getElementById('admin-brands-count').textContent=brands.length;
+  await loadSettings();
+  renderDeleteSetting();
+}
+function renderDeleteSetting(){
+  const on=state.allowBrandDelete;
+  const st=document.getElementById('del-setting-state');
+  const btn=document.getElementById('del-setting-toggle');
+  if(st) st.textContent = on
+    ? 'Activée — les utilisateurs peuvent supprimer leurs propres marques.'
+    : 'Désactivée — les utilisateurs ne peuvent pas supprimer leurs marques.';
+  if(btn) btn.textContent = on ? 'Désactiver' : 'Activer';
+}
+async function toggleBrandDelete(){
+  loader(true,'Mise à jour du réglage...');
+  const { error }=await db.from('app_settings').update({ allow_brand_delete: !state.allowBrandDelete }).eq('id',1);
+  loader(false);
+  if(error){ showToast('Erreur (avez-vous lancé le SQL des réglages ?) : '+error.message,'err'); return; }
+  state.allowBrandDelete=!state.allowBrandDelete;
+  renderDeleteSetting();
+  showToast('Réglage enregistré ✓','ok');
 }
 function renderAdminBrands(rows){
   const box=document.getElementById('admin-brands');

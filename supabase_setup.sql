@@ -156,5 +156,28 @@ create policy "brands_delete_admin" on public.brands for delete
 update public.profiles set is_admin = true where email = 'VOTRE_EMAIL_ICI';
 
 -- =====================================================================
+--  RÉGLAGE GLOBAL : l'admin active/désactive la suppression de marque
+-- =====================================================================
+create table if not exists public.app_settings (
+  id int primary key default 1,
+  allow_brand_delete boolean not null default true,
+  constraint app_settings_single_row check (id = 1)
+);
+insert into public.app_settings (id, allow_brand_delete)
+  values (1, true) on conflict (id) do nothing;
+
+alter table public.app_settings enable row level security;
+
+-- Tout le monde (connecté) peut LIRE le réglage
+drop policy if exists "settings_select_all" on public.app_settings;
+create policy "settings_select_all" on public.app_settings for select
+  to authenticated using (true);
+
+-- Seul l'admin peut MODIFIER le réglage
+drop policy if exists "settings_update_admin" on public.app_settings;
+create policy "settings_update_admin" on public.app_settings for update
+  to authenticated using (public.is_admin()) with check (public.is_admin());
+
+-- =====================================================================
 --  Terminé. Vous devriez voir "Success. No rows returned".
 -- =====================================================================
