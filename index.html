@@ -670,7 +670,12 @@ function switchAuth(which){
   document.getElementById('tab-signup').classList.toggle('active',su);
   document.getElementById('tab-login').classList.toggle('active',!su);
 }
-function showDashboard(){ show('view-dashboard'); renderDashboard(); }
+function showDashboard(){
+  show('view-dashboard');
+  // Sélectionne automatiquement la marque la plus récente → on voit le Calendrier d'emblée
+  if(!state.selectedBrand && state.brands.length){ state.selectedBrand=state.brands[0]; }
+  renderDashboard();
+}
 
 /* =========================================================================
    AUTHENTIFICATION (Supabase Auth)
