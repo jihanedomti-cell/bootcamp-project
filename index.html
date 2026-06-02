@@ -435,6 +435,10 @@
       <div class="side-sep"></div>
 
       <nav id="dash-side-nav">
+        <div class="side-label">Planning</div>
+        <a class="brand-item" id="nav-calendar" onclick="navTo('calendar',this)"><span>▦</span><span>Calendrier éditorial</span></a>
+
+        <div class="side-label">Marque</div>
         <a class="brand-item" id="nav-memory" onclick="navTo('memory',this)"><span>◈</span><span>Brand Memory</span></a>
 
         <div class="side-label">Générer du contenu</div>
@@ -443,9 +447,6 @@
         <a class="brand-item" data-channel="Email"     onclick="navChannel('Email',this)"><span>✉</span><span>Email</span></a>
         <a class="brand-item" data-channel="X"         onclick="navChannel('X',this)"><span>𝕏</span><span>X / Twitter</span></a>
         <a class="brand-item" data-channel="Facebook"  onclick="navChannel('Facebook',this)"><span>f</span><span>Facebook</span></a>
-
-        <div class="side-label">Planning</div>
-        <a class="brand-item" id="nav-calendar" onclick="navTo('calendar',this)"><span>▦</span><span>Calendrier éditorial</span></a>
 
         <div id="admin-nav-wrap" style="display:none">
           <div class="side-label">Admin</div>
@@ -759,8 +760,8 @@ function renderBrand(){
   document.getElementById('cur-color').style.background=b.couleur||'#7C5CFC';
   document.getElementById('cur-sector').textContent=b.secteur||'';
   renderMemory();
-  showPanel('memory');
-  setNavActive(document.getElementById('nav-memory'));
+  showPanel('calendar');
+  setNavActive(document.getElementById('nav-calendar'));
   const delBtn=document.getElementById('btn-delete-brand');
   if(delBtn) delBtn.style.display = state.allowBrandDelete ? 'inline-block' : 'none';
 }
