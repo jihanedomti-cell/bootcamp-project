@@ -815,8 +815,6 @@ function renderBrand(){
   showPanel('calendar');
   setNavActive(document.getElementById('nav-calendar'));
   renderCalendarGrid();
-  const delBtn=document.getElementById('btn-delete-brand');
-  if(delBtn) delBtn.style.display = state.allowBrandDelete ? 'inline-block' : 'none';
 }
 async function deleteBrand(){
   const b=state.selectedBrand; if(!b) return;
@@ -856,6 +854,9 @@ const RESEAU_TO_CHANNEL = { LinkedIn:'LinkedIn', Instagram:'Instagram', Email:'E
 function showPanel(name){
   document.querySelectorAll('#dash-brand .tab-panel').forEach(p=>p.classList.remove('active'));
   const el=document.getElementById('panel-'+name); if(el) el.classList.add('active');
+  // Le bouton "Supprimer" n'apparaît que sur l'écran Brand Memory
+  const delBtn=document.getElementById('btn-delete-brand');
+  if(delBtn) delBtn.style.display = (name==='memory' && state.allowBrandDelete) ? 'inline-block' : 'none';
 }
 function setNavActive(el){
   document.querySelectorAll('#dash-side-nav .brand-item').forEach(a=>a.classList.remove('active'));
