@@ -190,6 +190,7 @@
   section.block .lead { text-align: center; color: var(--text-muted); margin-bottom: 48px; }
   .section-cream { background: var(--cream); }
   .section-yellow { background: var(--yellow-light); }
+  .section-sky { background: var(--sky-light); border-top: 2px solid var(--dark); border-bottom: 2px solid var(--dark); }
   .gold-rule { border: none; border-top: 2px solid var(--yellow); width: 50px; margin: 12px auto 0; }
   .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
 
@@ -279,6 +280,17 @@
   #mem-display .mem-item:nth-child(3) { background: var(--yellow-light); border-color: var(--yellow-dark); }
   #mem-display .mem-item:nth-child(4) { background: var(--peach-light);  border-color: var(--peach); }
   #mem-display .mem-item:nth-child(5) { background: var(--green-light);  border-color: var(--green); }
+  /* KPIs de l'Analyse des posts — couleurs réparties (jaune/ciel/vert/pêche) */
+  #analytics-kpis > div { border-width: 2px !important; box-shadow: 3px 3px 0 var(--dark); }
+  #analytics-kpis > div:nth-child(1) { background: var(--yellow-light) !important; border-color: var(--yellow-dark) !important; }
+  #analytics-kpis > div:nth-child(2) { background: var(--sky-light) !important; border-color: var(--sky) !important; }
+  #analytics-kpis > div:nth-child(3) { background: var(--green-light) !important; border-color: var(--green) !important; }
+  #analytics-kpis > div:nth-child(4) { background: var(--peach-light) !important; border-color: var(--peach) !important; }
+  #analytics-charts-row > div, #analytics-insights-row > div { border-width: 2px !important; box-shadow: 3px 3px 0 var(--dark); }
+  #analytics-charts-row > div:nth-child(1) { border-color: var(--yellow-dark) !important; }
+  #analytics-charts-row > div:nth-child(2) { border-color: var(--sky) !important; }
+  #analytics-insights-row > div:nth-child(1) { border-color: var(--green) !important; }
+  #analytics-insights-row > div:nth-child(2) { border-color: var(--peach) !important; }
 
   /* Formats (pills pêche) */
   .suggestion-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 20px; font-size: 13px; color: var(--text-main); background: var(--white); cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; }
@@ -460,7 +472,7 @@
   </section>
 
   <!-- Pricing -->
-  <section class="block reveal">
+  <section class="block section-sky reveal">
     <div class="container">
       <h2 style="text-align:center">Des prix simples</h2>
       <hr class="gold-rule" />
