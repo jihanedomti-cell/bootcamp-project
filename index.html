@@ -514,6 +514,7 @@
 
         <div class="side-label">Vérifier</div>
         <a class="brand-item" id="nav-tone" onclick="navTo('tone',this)"><span>◎</span><span>Tone Checker</span></a>
+        <a class="brand-item" id="nav-historique" onclick="navTo('historique',this)"><span>◷</span><span>Historique</span><span id="historique-count" style="display:none; margin-left:auto; font-size:11px; background:var(--green); color:#fff; border-radius:10px; padding:1px 7px; font-weight:600;"></span></a>
 
         <div class="side-label">Planning</div>
         <a class="brand-item" id="nav-calendar" onclick="navTo('calendar',this)"><span>▦</span><span>Calendrier éditorial</span></a>
@@ -659,6 +660,32 @@
               <button class="btn-secondary btn-sm" style="margin-top:14px" onclick="copyToneCorrected()">Copier la version corrigée</button>
             </div>
           </div>
+        </div>
+
+        <!-- TAB: Historique des générations -->
+        <div id="panel-historique" class="tab-panel">
+          <div class="row" style="justify-content:space-between; align-items:flex-start; margin-bottom:22px; flex-wrap:wrap; gap:12px">
+            <div>
+              <h3 style="margin-bottom:4px">Historique</h3>
+              <p class="small">Tous les contenus générés pour <strong id="historique-brand-name"></strong>.</p>
+            </div>
+            <select id="historique-filter-canal" onchange="filterHistorique()" style="width:auto; min-width:180px">
+              <option value="">Tous les canaux</option>
+              <option value="linkedin">LinkedIn</option>
+              <option value="instagram">Instagram</option>
+              <option value="email">Email</option>
+              <option value="twitter">X / Twitter</option>
+              <option value="facebook">Facebook</option>
+            </select>
+          </div>
+
+          <div id="historique-empty" style="display:none; text-align:center; padding:60px 20px; color:var(--text-muted)">
+            <div style="font-size:32px; margin-bottom:12px">◷</div>
+            <div style="font-size:15px; font-weight:600; margin-bottom:6px; color:var(--text-main)">Aucun contenu généré</div>
+            <div class="small">Générez votre premier contenu pour le voir apparaître ici.</div>
+          </div>
+
+          <div id="historique-list" style="display:flex; flex-direction:column; gap:12px"></div>
         </div>
 
         <!-- TAB: Calendrier -->
@@ -808,6 +835,7 @@ const DEMO_MODE = true;
 
 /* ---------- État global ---------- */
 let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true, calMonth: null, calendarItems: [], currentVariants: [], selectedVariantIdx: 0, genRowId: null, genContext: null, memFiles: [] };
+let allHistoriqueItems = [];
 
 /* ---------- Utilitaires UI ---------- */
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
@@ -920,7 +948,7 @@ function renderDashboard(){
   document.getElementById('dash-brand').style.display=hasSel?'block':'none';
   if(hasSel) renderBrand();
 }
-function selectBrand(id){ state.selectedBrand=state.brands.find(b=>b.id===id); state.lastGen=null; state.calendarItems=[]; state.calMonth=null; renderDashboard(); }
+function selectBrand(id){ state.selectedBrand=state.brands.find(b=>b.id===id); state.lastGen=null; state.calendarItems=[]; state.calMonth=null; allHistoriqueItems=[]; renderDashboard(); }
 
 function renderBrand(){
   const b=state.selectedBrand;
@@ -931,6 +959,7 @@ function renderBrand(){
   showPanel('calendar');
   setNavActive(document.getElementById('nav-calendar'));
   renderCalendarGrid();
+  loadHistorique();
 }
 async function deleteBrand(){
   const b=state.selectedBrand; if(!b) return;
@@ -992,6 +1021,7 @@ function navTo(name,el){
   setNavActive(el); showPanel(name);
   if(name==='calendar') renderCalendarGrid();
   if(name==='tone') renderToneChecker();
+  if(name==='historique') loadHistorique();
 }
 function navChannel(channel,el){
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
@@ -1249,6 +1279,7 @@ async function generateVariants(sujet, fmt){
   loader(false);
   renderVariants();
   updateCoherenceScore();
+  loadHistorique();
   showToast('3 variantes générées ✓','ok');
 }
 // Construit une variante adaptée à l'approche, au format et au réseau (mode démo).
@@ -1500,6 +1531,106 @@ function copyToneCorrected(){
   const t=document.getElementById('tone-version-corrigee').textContent;
   navigator.clipboard.writeText(t);
   showToast('Version corrigée copiée ✓','ok');
+}
+
+/* ---- Historique des générations (lecture Supabase : generated_contents) ---- */
+function updateHistoriqueBadge(){
+  const badge=document.getElementById('historique-count');
+  if(!badge) return;
+  if(allHistoriqueItems.length){ badge.textContent=allHistoriqueItems.length; badge.style.display='inline-block'; }
+  else { badge.style.display='none'; }
+}
+async function loadHistorique(){
+  if(!state.selectedBrand) return;
+  const nameEl=document.getElementById('historique-brand-name'); if(nameEl) nameEl.textContent=state.selectedBrand.nom;
+  try{
+    const { data, error }=await db.from('generated_contents')
+      .select('*').eq('brand_id',state.selectedBrand.id)
+      .order('created_at',{ascending:false}).limit(50);
+    if(error) throw error;
+    allHistoriqueItems=data||[];
+  }catch(e){ allHistoriqueItems=[]; }
+  updateHistoriqueBadge();
+  // Ne rend la liste que si le panneau est visible
+  if(document.getElementById('panel-historique').classList.contains('active')) filterHistorique();
+}
+function histCanal(item){ return String(item.format||'').split('—')[0].trim().toLowerCase(); }
+function filterHistorique(){
+  const canal=document.getElementById('historique-filter-canal').value;
+  if(!canal){ renderHistorique(allHistoriqueItems); return; }
+  const target = canal==='twitter' ? 'x' : canal;
+  const filtered=allHistoriqueItems.filter(it=>{
+    const cp=histCanal(it);
+    return cp===target || cp===canal || String(it.format||'').toLowerCase().includes(canal);
+  });
+  renderHistorique(filtered);
+}
+function histIcon(item){
+  const cp=histCanal(item), f=String(item.format||'').toLowerCase();
+  if(cp==='linkedin'||f.includes('linkedin')) return 'in';
+  if(cp==='instagram'||f.includes('instagram')) return '▣';
+  if(cp==='email'||f.includes('email')||f.includes('newsletter')) return '✉';
+  if(cp==='x'||f.includes('twitter')||f.includes('tweet')) return '𝕏';
+  if(cp==='facebook'||f.includes('facebook')) return 'f';
+  return '◈';
+}
+function renderHistorique(items){
+  const list=document.getElementById('historique-list');
+  const empty=document.getElementById('historique-empty');
+  if(!items||!items.length){ list.style.display='none'; empty.style.display='block'; return; }
+  empty.style.display='none'; list.style.display='flex';
+  const e=escapeHtml;
+  list.innerHTML=items.map(item=>{
+    const d=new Date(item.created_at);
+    const dateStr=isNaN(d)?'':d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+    const heureStr=isNaN(d)?'':d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const full=item.contenu||'';
+    const apercu=full.replace(/\s+/g,' ').trim().slice(0,120)+(full.length>120?'…':'');
+    return `<div class="card hist-card" id="hist-card-${e(item.id)}" style="padding:0; overflow:hidden">
+      <div class="row" style="gap:12px; padding:14px 16px; border-bottom:1.5px solid var(--border); align-items:center">
+        <span style="font-size:13px; font-weight:600; width:28px; height:28px; border-radius:6px; background:var(--bg-section); display:flex; align-items:center; justify-content:center; flex-shrink:0">${e(histIcon(item))}</span>
+        <div style="flex:1; min-width:0">
+          <div style="font-size:13px; font-weight:600; color:var(--text-main)">${e(item.format||'Contenu')}</div>
+          <div class="small">${item.sujet?('« '+e(item.sujet)+' » · '):''}${e(dateStr)} à ${e(heureStr)}</div>
+        </div>
+        <div class="row" style="gap:8px">
+          <button class="btn-secondary btn-sm" id="hist-toggle-${e(item.id)}" onclick="toggleHistoriqueItem('${e(item.id)}')">Voir</button>
+          <button class="btn-secondary btn-sm" id="hist-copy-${e(item.id)}" onclick="copyHistoriqueItem('${e(item.id)}')">Copier</button>
+          <button class="btn-secondary btn-sm" style="color:#C0392B; border-color:#E8B5AE" onclick="deleteHistoriqueItem('${e(item.id)}')">✕</button>
+        </div>
+      </div>
+      <div style="padding:12px 16px; font-size:13px; color:var(--text-muted); line-height:1.6">${e(apercu)}</div>
+      <div id="hist-full-${e(item.id)}" style="display:none; padding:14px 16px 16px; font-size:14px; line-height:1.8; white-space:pre-wrap; color:var(--text-main); border-top:1.5px solid var(--border)">${e(full)}</div>
+    </div>`;
+  }).join('');
+}
+function toggleHistoriqueItem(id){
+  const full=document.getElementById('hist-full-'+id);
+  const btn=document.getElementById('hist-toggle-'+id);
+  if(!full) return;
+  if(full.style.display==='none'){ full.style.display='block'; if(btn) btn.textContent='Réduire'; }
+  else { full.style.display='none'; if(btn) btn.textContent='Voir'; }
+}
+function copyHistoriqueItem(id){
+  const item=allHistoriqueItems.find(i=>String(i.id)===String(id)); if(!item) return;
+  navigator.clipboard.writeText(item.contenu||'');
+  const btn=document.getElementById('hist-copy-'+id);
+  if(btn){ btn.textContent='Copié ✓'; setTimeout(()=>{ btn.textContent='Copier'; },2000); }
+}
+async function deleteHistoriqueItem(id){
+  if(!confirm('Supprimer ce contenu de l\'historique ?')) return;
+  try{
+    const { error }=await db.from('generated_contents').delete().eq('id',id);
+    if(error) throw error;
+    const card=document.getElementById('hist-card-'+id); if(card) card.remove();
+    allHistoriqueItems=allHistoriqueItems.filter(i=>String(i.id)!==String(id));
+    updateHistoriqueBadge();
+    if(!allHistoriqueItems.length){
+      document.getElementById('historique-empty').style.display='block';
+      document.getElementById('historique-list').style.display='none';
+    }
+    showToast('Contenu supprimé ✓','ok');
+  }catch(e){ showToast('Erreur lors de la suppression.','err'); }
 }
 function renderVariants(){
   const box=document.getElementById('gen-results');
