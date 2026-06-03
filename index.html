@@ -918,6 +918,12 @@ function selectFormat(f,el){
   state.selectedFormat=f;
   document.querySelectorAll('#gen-formats .format-pill').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
+  // Si un contenu a déjà été généré pour ce sujet, on régénère aussitôt avec le nouveau format
+  // → l'aperçu du post change immédiatement quand on change de format.
+  const sujet=document.getElementById('gen-sujet').value.trim();
+  if(sujet && state.currentVariants && state.currentVariants.length){
+    generateVariants(sujet, f);
+  }
 }
 
 /* ---- Espace admin : prospects (leads) + inscrits (profiles) ---- */
