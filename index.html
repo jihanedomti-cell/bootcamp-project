@@ -257,6 +257,9 @@
   .mem-item > div:last-child { color: var(--text-main); }
 
   /* Formats (pills pêche) */
+  .suggestion-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 20px; font-size: 13px; color: var(--text-main); background: var(--white); cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
+  .suggestion-chip:hover { border-color: var(--peach); color: #7A3020; background: var(--peach-light); }
+  #gen-sujet.flash { border-color: var(--yellow); box-shadow: 0 0 0 3px rgba(245,200,0,0.25); }
   .format-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 18px; }
   .format-list label { display: flex; align-items: center; gap: 8px; background: var(--white); border: 1.5px solid var(--border); padding: 6px 16px; border-radius: 20px; cursor: pointer; margin: 0; color: var(--text-muted); font-size: 13px; font-weight: 500; transition: all 0.2s; }
   .format-list label:hover { border-color: var(--peach); color: var(--dark); background: var(--peach-light); }
@@ -581,6 +584,17 @@
           <h3 id="gen-title" style="margin-bottom:4px">LinkedIn</h3>
           <p class="small" style="margin-bottom:18px">Choisissez un format puis décrivez votre sujet.</p>
           <div class="format-list" id="gen-formats"></div>
+
+          <!-- Suggestions de sujets (générées localement depuis la Brand Memory) -->
+          <div id="suggestions-block" style="margin:4px 0 20px">
+            <div class="row" style="justify-content:space-between; margin-bottom:10px">
+              <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; font-weight:600">✦ Idées de sujets</div>
+              <button type="button" id="suggestions-refresh" onclick="loadSuggestions()" class="btn-ghost btn-sm" style="color:var(--green); padding:2px 8px">↺ Actualiser</button>
+            </div>
+            <div id="suggestions-loader" class="small" style="display:none; padding:8px 0">Génération des idées…</div>
+            <div id="suggestions-chips" style="display:flex; flex-wrap:wrap; gap:8px"></div>
+          </div>
+
           <div class="field"><label>Sujet du contenu</label><textarea id="gen-sujet" rows="3" placeholder="Décrivez votre sujet en quelques mots — ex : Lancement de notre nouvelle offre d'accompagnement, pour qui, ce qu'elle apporte…"></textarea></div>
           <button class="btn-primary" onclick="doGenerate()">Générer</button>
           <div id="gen-results"></div>
@@ -1049,6 +1063,7 @@ function renderChannelView(){
   document.getElementById('gen-decline').style.display='none';
   state.lastGen=null;
   state.currentVariants=[]; state.selectedVariantIdx=0; state.genRowId=null;
+  loadSuggestions();
 }
 function selectFormat(f,el){
   state.selectedFormat=f;
@@ -1060,6 +1075,65 @@ function selectFormat(f,el){
   if(sujet && state.currentVariants && state.currentVariants.length){
     generateVariants(sujet, f);
   }
+}
+
+/* ---- Suggestions de sujets (générées localement depuis la Brand Memory) ---- */
+function computeSuggestions(channel, brand){
+  const m=brand.brand_memory||{};
+  const nom=brand.nom||'notre marque';
+  const secteurL=(brand.secteur||'votre secteur').toLowerCase();
+  const cibleL=(m.cible||'votre audience').toLowerCase();
+  const kws=(m.mots_cles||[]).filter(Boolean);
+  const k1=kws[0]||'la clarté', k2=kws[1]||'l\'impact';
+  const v1=((m.valeurs||[]).filter(Boolean)[0])||'l\'authenticité';
+  const generic=[
+    `Les 3 erreurs que font ${cibleL} avant de nous contacter`,
+    `Comment nous aidons ${cibleL} grâce à ${k1}`,
+    `Derrière les coulisses : une journée chez ${nom}`,
+    `Ce que personne ne dit sur ${secteurL}`,
+    `Notre méthode en 4 étapes pour ${k1}`,
+    `${k1} ou ${k2} : par où commencer ?`,
+    `3 conseils ${k1} pour ${cibleL}`,
+    `Pourquoi ${v1} change tout pour ${cibleL}`,
+    `Le mythe le plus répandu sur ${secteurL}`,
+    `Un cas client concret autour de ${k1}`,
+    `Nos valeurs en action : ${v1} au quotidien`,
+    `La question que ${cibleL} nous pose le plus souvent`
+  ];
+  const perCanal={
+    LinkedIn:[`Retour d'expérience : ce que ${secteurL} m'a appris`,`Tribune : l'avenir de ${secteurL}`,`${k1} : un avis qui fait réagir`],
+    Instagram:[`Avant / après : ${k1} en images`,`5 astuces ${k1} à enregistrer`,`Le quotidien de ${nom} en story`],
+    Email:[`Newsletter : tout savoir sur ${k1}`,`Email de bienvenue autour de ${v1}`,`L'offre du mois pour ${cibleL}`],
+    X:[`Thread : ${k1} expliqué en 5 points`,`Un avis tranché sur ${secteurL}`,`${k1} résumé en 280 caractères`],
+    Facebook:[`Sondage : comment gérez-vous ${k1} ?`,`${nom} lance une nouveauté autour de ${k1}`,`On répond à vos questions sur ${secteurL}`]
+  };
+  const pool=generic.concat(perCanal[channel]||[]);
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
+  return pool.slice(0,5).map(s=>s.charAt(0).toUpperCase()+s.slice(1));
+}
+async function loadSuggestions(){
+  const chips=document.getElementById('suggestions-chips'); if(!chips) return;
+  if(!state.selectedBrand){ chips.innerHTML=''; return; }
+  const loaderEl=document.getElementById('suggestions-loader');
+  const refreshBtn=document.getElementById('suggestions-refresh');
+  if(loaderEl) loaderEl.style.display='block';
+  chips.innerHTML=''; if(refreshBtn) refreshBtn.disabled=true;
+  await wait(450);
+  try{
+    if(!DEMO_MODE){ /* TODO: Edge Function sécurisée (clé API côté serveur) */ }
+    renderSuggestions(computeSuggestions(state.currentChannel, state.selectedBrand));
+  }catch(e){ chips.innerHTML='<span class="small">Impossible de charger les suggestions.</span>'; }
+  finally{ if(loaderEl) loaderEl.style.display='none'; if(refreshBtn) refreshBtn.disabled=false; }
+}
+function renderSuggestions(suggestions){
+  const chips=document.getElementById('suggestions-chips'); if(!chips) return;
+  const e=escapeHtml;
+  chips.innerHTML=(suggestions||[]).map(s=>`<button type="button" class="suggestion-chip" data-sujet="${e(s)}" onclick="selectSuggestion(this)"><span style="opacity:.5">+</span> ${e(s)}</button>`).join('');
+}
+function selectSuggestion(el){
+  const sujet=el.getAttribute('data-sujet')||'';
+  const input=document.getElementById('gen-sujet');
+  if(input){ input.value=sujet; input.focus(); input.classList.add('flash'); setTimeout(()=>input.classList.remove('flash'),900); }
 }
 
 /* ---- Espace admin : prospects (leads) + inscrits (profiles) ---- */
