@@ -741,6 +741,7 @@
           <div class="row" style="margin-top:20px">
             <button class="btn-secondary btn-sm" onclick="editMemory()">Modifier manuellement</button>
             <button class="btn-secondary btn-sm" onclick="reanalyze()">Re-analyser</button>
+            <button class="btn-secondary btn-sm" id="share-brand-btn" onclick="shareBrandMemory()">🔗 Partager avec un client</button>
           </div>
 
           <div style="margin-top:28px; padding-top:20px; border-top:1.5px solid var(--border)">
@@ -1289,6 +1290,30 @@
     <div style="display:flex; gap:10px; margin-top:8px">
       <button class="btn-primary" style="flex:1" onclick="saveReminder()">Enregistrer le rappel</button>
       <button class="btn-secondary" style="flex:1" onclick="closeReminderModal()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : partage de Brand Memory -->
+<div id="share-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; align-items:center; justify-content:center">
+  <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:28px; width:480px; max-width:95vw">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px">
+      <div style="font-size:16px; font-weight:700; color:var(--text-main)">🔗 Partager la Brand Memory</div>
+      <button onclick="closeShareModal()" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-muted)">✕</button>
+    </div>
+    <p class="small" style="margin-bottom:20px; line-height:1.6">Partagez ce lien avec votre client pour qu'il puisse consulter et valider sa Brand Memory — sans créer de compte.</p>
+    <div id="share-link-block" style="display:none">
+      <div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--green); margin-bottom:8px">Lien de partage</div>
+      <div style="display:flex; gap:8px">
+        <input type="text" id="share-link-input" readonly style="flex:1; font-size:13px" />
+        <button onclick="copyShareLink()" id="copy-share-btn" class="btn-primary btn-sm" style="white-space:nowrap">Copier</button>
+      </div>
+      <div class="small" style="margin-top:8px">✓ Lecture seule · ✓ Sans connexion requise · ✓ Révocable à tout moment</div>
+    </div>
+    <div id="share-loader" class="small" style="text-align:center; padding:16px; display:none">Génération du lien…</div>
+    <div style="display:flex; gap:10px; margin-top:20px">
+      <button onclick="generateShareLink()" id="generate-share-btn" class="btn-primary" style="flex:1">Générer le lien</button>
+      <button onclick="revokeShareLink()" id="revoke-share-btn" class="btn-secondary" style="display:none; color:#C0392B">Révoquer</button>
     </div>
   </div>
 </div>
@@ -2016,6 +2041,121 @@ function copyTemplateResult(){
   const t=document.getElementById('template-result-text').textContent;
   navigator.clipboard.writeText(t);
   showToast('Contenu copié ✓','ok');
+}
+
+/* ---- Partage de Brand Memory (table brand_shares, lecture seule publique) ---- */
+let currentShareToken=null;
+function genShareToken(){
+  const a=new Uint8Array(16); (window.crypto||crypto).getRandomValues(a);
+  return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function shareBrandMemory(){
+  if(!state.selectedBrand){ showToast('Sélectionnez une marque.','err'); return; }
+  const modal=document.getElementById('share-modal-overlay'); modal.style.display='flex';
+  document.getElementById('share-link-block').style.display='none';
+  document.getElementById('generate-share-btn').style.display='block';
+  document.getElementById('revoke-share-btn').style.display='none';
+  document.getElementById('share-loader').style.display='none';
+  try{
+    const { data:existing }=await db.from('brand_shares').select('*').eq('brand_id',state.selectedBrand.id).eq('actif',true).maybeSingle();
+    if(existing){ currentShareToken=existing.token; showShareLink(existing.token); }
+  }catch(e){}
+}
+function closeShareModal(){ document.getElementById('share-modal-overlay').style.display='none'; }
+async function generateShareLink(){
+  if(!state.selectedBrand) return;
+  const loader=document.getElementById('share-loader'); const btn=document.getElementById('generate-share-btn');
+  loader.style.display='block'; btn.style.display='none';
+  const b=state.selectedBrand;
+  const token=genShareToken();
+  const snapshot={ nom:b.nom, secteur:b.secteur, couleur:b.couleur, brand_memory:b.brand_memory||{} };
+  try{
+    const { data, error }=await db.from('brand_shares').insert({ brand_id:b.id, user_id:state.user.id, token, actif:true, snapshot }).select().single();
+    if(error) throw error;
+    currentShareToken=data.token;
+    showShareLink(data.token);
+  }catch(e){
+    showToast('Lien non généré — avez-vous créé la table « brand_shares » dans Supabase ?','err');
+    btn.style.display='block';
+  }finally{ loader.style.display='none'; }
+}
+function showShareLink(token){
+  const baseUrl=window.location.origin+window.location.pathname;
+  document.getElementById('share-link-input').value=baseUrl+'?share='+token;
+  document.getElementById('share-link-block').style.display='block';
+  document.getElementById('generate-share-btn').style.display='none';
+  document.getElementById('revoke-share-btn').style.display='inline-block';
+}
+function copyShareLink(){
+  const input=document.getElementById('share-link-input');
+  navigator.clipboard.writeText(input.value);
+  const btn=document.getElementById('copy-share-btn');
+  if(btn){ btn.textContent='Copié ✓'; setTimeout(()=>{ btn.textContent='Copier'; },2000); }
+}
+async function revokeShareLink(){
+  if(!state.selectedBrand) return;
+  if(!confirm('Révoquer ce lien ? Il ne sera plus accessible.')) return;
+  try{
+    await db.from('brand_shares').update({ actif:false }).eq('brand_id',state.selectedBrand.id).eq('user_id',state.user.id);
+    currentShareToken=null;
+    document.getElementById('share-link-block').style.display='none';
+    document.getElementById('generate-share-btn').style.display='block';
+    document.getElementById('revoke-share-btn').style.display='none';
+    showToast('Lien révoqué.','ok');
+  }catch(e){ showToast('Erreur lors de la révocation.','err'); }
+}
+async function checkShareMode(){
+  const params=new URLSearchParams(window.location.search);
+  const token=params.get('share');
+  if(!token) return false;
+  const e=(s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let share=null;
+  try{ const r=await db.from('brand_shares').select('*').eq('token',token).eq('actif',true).maybeSingle(); share=r.data; }catch(err){}
+  if(!share){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:Inter,sans-serif;background:#FAF0E8"><div style="text-align:center;padding:40px"><div style="font-size:48px;margin-bottom:16px">🔗</div><div style="font-size:20px;font-weight:700;margin-bottom:8px">Lien invalide ou expiré</div><div style="font-size:14px;color:#6B6560">Ce lien de partage n\'est plus actif.</div></div></div>';
+    return true;
+  }
+  const snap=share.snapshot||{}; const bm=snap.brand_memory||{};
+  const arr=(x)=>Array.isArray(x)?x:String(x||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const chips=(items,bg,col)=>arr(items).map(m=>`<span style="background:${bg};color:${col};border-radius:20px;padding:4px 12px;font-size:12px;font-weight:500">${e(m)}</span>`).join('')||'—';
+  document.body.innerHTML=`<div style="min-height:100vh;background:#FAF0E8;font-family:Inter,sans-serif;color:#1A1A1A">
+    <div style="background:#FAF0E8;border-bottom:1px solid #EDE8D8;padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-weight:800;font-size:18px;font-family:Fraunces,serif">✦ Brief to Brand</div>
+      <div style="font-size:13px;color:#6B6560">Vue partagée · Lecture seule</div>
+    </div>
+    <div style="max-width:800px;margin:0 auto;padding:40px 20px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+        <div style="width:16px;height:16px;border-radius:50%;background:${e(snap.couleur||'#F5C400')}"></div>
+        <h1 style="font-size:28px;font-weight:800;margin:0;font-family:Fraunces,serif">${e(snap.nom||'Marque')}</h1>
+        <span style="background:#FFF8E0;border-radius:20px;padding:4px 12px;font-size:12px;color:#6B6560">${e(snap.secteur||'')}</span>
+      </div>
+      <p style="color:#6B6560;margin-bottom:32px">Brand Memory partagée pour validation</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#9B7FE8;margin-bottom:10px">🎯 Ton détecté</div>
+          <div style="font-size:16px;font-weight:600">${e(bm.ton||'—')}</div>
+        </div>
+        <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#6BB8E8;margin-bottom:10px">👥 Cible adressée</div>
+          <div style="font-size:14px">${e(bm.cible||'—')}</div>
+        </div>
+        <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#C9A300;margin-bottom:10px">🔑 Mots-clés</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">${chips(bm.mots_cles,'#FFF8E0','#8B6A00')}</div>
+        </div>
+        <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#F0856A;margin-bottom:10px">🚫 Mots à éviter</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">${chips(bm.mots_interdits,'#FFF0ED','#C04A30')}</div>
+        </div>
+        <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);grid-column:1/-1">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#5BBF7A;margin-bottom:10px">💎 Valeurs</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">${chips(bm.valeurs,'#EDFAF2','#2A8050')}</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:40px;font-size:13px;color:#6B6560">Créé avec <strong>Brief to Brand</strong> · La mémoire de marque IA</div>
+    </div>
+  </div>`;
+  return true;
 }
 function renderChannelView(){
   const ch=CHANNELS[state.currentChannel]; if(!ch) return;
@@ -3630,6 +3770,7 @@ function escapeHtml(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&
    INITIALISATION : session existante ?
    ========================================================================= */
 (async function init(){
+  if(await checkShareMode()) return;   // mode "lien partagé" : affiche la Brand Memory en lecture seule
   const { data:{ session } } = await db.auth.getSession();
   if(session){ await afterLogin(); } else { showLanding(); }
 })();

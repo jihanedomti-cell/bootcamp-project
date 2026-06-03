@@ -202,5 +202,30 @@ create policy "reminders_all_own" on public.publication_reminders for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- =====================================================================
+--  PARTAGE DE BRAND MEMORY (lien public en lecture seule)
+-- =====================================================================
+create table if not exists public.brand_shares (
+  id          uuid primary key default gen_random_uuid(),
+  brand_id    uuid references public.brands(id) on delete cascade,
+  user_id     uuid references auth.users(id) on delete cascade,
+  token       text unique not null,
+  snapshot    jsonb,            -- copie de la Brand Memory au moment du partage
+  actif       boolean default true,
+  created_at  timestamptz default now()
+);
+
+alter table public.brand_shares enable row level security;
+
+-- Le propriétaire gère ses propres liens
+drop policy if exists "shares_all_own" on public.brand_shares;
+create policy "shares_all_own" on public.brand_shares for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- N'importe qui (même non connecté) peut LIRE un lien actif
+drop policy if exists "shares_select_public" on public.brand_shares;
+create policy "shares_select_public" on public.brand_shares for select
+  to anon, authenticated using (actif = true);
+
+-- =====================================================================
 --  Terminé. Vous devriez voir "Success. No rows returned".
 -- =====================================================================
