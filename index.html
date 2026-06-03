@@ -101,6 +101,21 @@
   .email-content { font-size: 14px; line-height: 1.8; white-space: pre-wrap; }
   .email-signature { margin-top: 20px; font-size: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
   .preview-twitter-actions { display: flex; gap: 24px; padding: 10px 16px; border-top: 1px solid var(--border); font-size: 13px; opacity: 0.6; color: var(--text-main); }
+  /* ---- Aperçus spécifiques au FORMAT ---- */
+  .preview-format-badge { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #7A3020; background: var(--peach-light); border: 1.5px solid var(--peach); padding: 4px 12px; border-radius: 20px; margin-bottom: 12px; }
+  .carousel-track { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; max-width: 480px; }
+  .carousel-slide { flex: 0 0 180px; min-height: 180px; border: 1.5px solid var(--border); border-radius: 14px; background: var(--white); padding: 16px; font-size: 14px; line-height: 1.5; color: var(--text-main); position: relative; box-shadow: 3px 3px 0 var(--border); }
+  .carousel-slide-num { width: 26px; height: 26px; border-radius: 50%; background: var(--green); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .thread-track { display: flex; flex-direction: column; max-width: 480px; }
+  .thread-tweet { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .preview-avatar-sm { width: 34px; height: 34px; font-size: 14px; }
+  .article-preview { border: 1.5px solid var(--border); border-radius: 12px; background: var(--white); padding: 24px; max-width: 480px; }
+  .article-title { font-family: 'DM Serif Display', serif; font-size: 24px; line-height: 1.2; color: var(--dark); margin-bottom: 8px; }
+  .article-meta { font-size: 12px; opacity: 0.6; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); color: var(--text-main); }
+  .article-body { font-size: 14px; line-height: 1.8; white-space: pre-wrap; word-break: break-word; color: var(--text-main); }
+  .story-frame { width: 240px; height: 420px; border-radius: 24px; background: linear-gradient(160deg, var(--peach), var(--yellow)); padding: 20px; display: flex; flex-direction: column; justify-content: center; position: relative; box-shadow: 4px 4px 0 var(--border); }
+  .story-bar { position: absolute; top: 12px; left: 16px; right: 16px; height: 3px; border-radius: 3px; background: rgba(255,255,255,0.6); }
+  .story-text { font-size: 18px; line-height: 1.5; font-weight: 600; color: var(--dark); white-space: pre-wrap; word-break: break-word; text-shadow: 0 1px 2px rgba(255,255,255,0.4); }
   .preview-fb-stats { padding: 8px 16px; font-size: 12px; opacity: 0.6; display: flex; justify-content: space-between; border-top: 1px solid var(--border); color: var(--text-main); }
   .preview-fb-actions { display: flex; padding: 4px 8px; border-top: 1px solid var(--border); }
   .preview-fb-actions span { flex: 1; text-align: center; padding: 8px; font-size: 13px; font-weight: 500; opacity: 0.7; cursor: pointer; color: var(--text-main); }
@@ -1262,7 +1277,38 @@ function renderPreview(){
   const initial=(prenom[0]||'?').toUpperCase();
   const handle=prenom.toLowerCase().replace(/\s+/g,'');
   const ch=state.currentChannel, e=escapeHtml;
+  const fmt=String(state.selectedFormat||'').toLowerCase();
+  const badge=`<div class="preview-format-badge">${e(state.currentChannel||'')} · ${e(state.selectedFormat||'')}</div>`;
   let html='';
+
+  // ---- Aperçus spécifiques au FORMAT (prioritaires sur le cadre du réseau) ----
+  if(fmt.includes('carrousel')){
+    let slides=txt.split('\n').map(l=>l.trim()).filter(l=>/^slide/i.test(l)).map(l=>l.replace(/^slide\s*\d+\s*[·:.-]?\s*/i,''));
+    if(!slides.length) slides=txt.split('\n').map(l=>l.trim()).filter(Boolean).slice(0,7);
+    const cards=slides.map((s,i)=>`<div class="carousel-slide"><div class="carousel-slide-num">${i+1}</div><div>${e(s)}</div></div>`).join('');
+    host.innerHTML=`${badge}<div class="carousel-track">${cards}</div><div class="small" style="margin-top:8px">← faites défiler les slides →</div>`;
+    return;
+  }
+  if(fmt.includes('thread')){
+    let tweets=txt.split('\n').map(l=>l.trim()).filter(l=>/^\d+\//.test(l)).map(l=>l.replace(/^\d+\/\s*/,''));
+    if(!tweets.length) tweets=txt.split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean);
+    const items=tweets.map(t=>`<div class="thread-tweet"><div class="preview-avatar preview-avatar-sm">${e(initial)}</div><div><div class="preview-name" style="font-size:13px">${e(prenom)} <span style="font-weight:400;opacity:.6">@${e(handle)}</span></div><div style="font-size:14px;line-height:1.6;white-space:pre-wrap;color:var(--text-main);padding-top:2px">${e(t)}</div></div></div>`).join('');
+    host.innerHTML=`${badge}<div class="thread-track">${items}</div>`;
+    return;
+  }
+  if(fmt.includes('article')){
+    const lines=txt.split('\n').filter(l=>l.trim());
+    const title=lines[0]||'Article';
+    const body=lines.slice(1).join('\n');
+    host.innerHTML=`${badge}<div class="article-preview"><div class="article-title">${e(title)}</div><div class="article-meta">${e(prenom)} · Brief to Brand · 5 min de lecture</div><div class="article-body">${e(body)}</div></div>`;
+    return;
+  }
+  if(fmt.includes('story')){
+    host.innerHTML=`${badge}<div class="story-frame"><div class="story-bar"></div><div class="story-text">${e(txt)}</div></div>`;
+    return;
+  }
+
+  // ---- Sinon : cadre fidèle au réseau (avec badge du format) ----
   if(ch==='LinkedIn'){
     html=`<div class="post-preview linkedin-preview">
       <div class="preview-header"><div class="preview-avatar">${e(initial)}</div>
@@ -1306,7 +1352,7 @@ function renderPreview(){
   } else {
     html=`<div class="post-preview"><div class="preview-body">${e(txt)}</div></div>`;
   }
-  host.innerHTML=html;
+  host.innerHTML=badge+html;
 }
 function renderResult(format,contenu){
   const div=document.createElement('div');
