@@ -382,6 +382,87 @@
     h1 { font-size: 40px; }
     h2 { font-size: 30px; }
   }
+  /* =========================================================================
+     STYLE "APP MOBILE" — appliqué UNIQUEMENT au dashboard + éditeur de marque
+     (préfixe #view-dashboard / #view-brand-editor → la landing n'est pas touchée)
+     ========================================================================= */
+  #view-dashboard, #view-brand-editor {
+    --dash-bg:#FAF0E8; --dash-card:#FFFFFF; --dash-shadow:0 4px 20px rgba(0,0,0,0.08);
+    --dash-text:#1A1A1A; --dash-muted:#9A8F87; --dash-yellow:#F5C400; --dash-peach:#F0856A;
+    --dash-sky:#6BB8E8; --dash-green:#5BBF7A; --dash-purple:#9B7FE8;
+    --dash-radius:18px; --dash-radius-sm:12px;
+  }
+  #view-brand-editor { background: var(--dash-bg); }
+  /* Layout : fonds saumon, sans bordures */
+  #view-dashboard .dash-header { background: var(--dash-bg); border-bottom: none; }
+  #view-dashboard .dash-body { background: var(--dash-bg); }
+  #view-dashboard .sidebar { background: var(--dash-bg); border-right: none; padding: 18px 12px; }
+  #view-dashboard .main { background: var(--dash-bg); }
+  #view-dashboard .side-sep { display: none; }
+  /* Logo : pastille dégradée arrondie */
+  #view-dashboard .logo .dot::before { content:''; display:inline-block; width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); }
+  /* Sidebar */
+  #view-dashboard .side-label { color: var(--dash-muted); font-weight: 700; letter-spacing: 1px; }
+  #view-dashboard .sidebar .brand-item { color: var(--dash-muted); border: none; border-radius: var(--dash-radius-sm); padding: 11px 14px; margin: 2px 0; background: transparent; box-shadow: none; font-weight: 500; }
+  #view-dashboard .sidebar .brand-item:hover { background: var(--dash-card); color: var(--dash-text); box-shadow: var(--dash-shadow); }
+  #view-dashboard .sidebar .brand-item.active { background: var(--dash-card); color: var(--dash-text); font-weight: 700; box-shadow: var(--dash-shadow); border: none; }
+  #view-dashboard .brand-selector { background: var(--dash-card); border: none; border-radius: var(--dash-radius); box-shadow: var(--dash-shadow); padding: 12px 14px; margin: 4px 0 12px; }
+  #view-dashboard .sidebar .btn-primary { background: linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); color:#fff; border:none; border-radius: var(--dash-radius-sm); box-shadow: 0 4px 12px rgba(245,196,0,0.4); }
+  /* Cartes */
+  #view-dashboard .card, #view-brand-editor .card { background: var(--dash-card); border: none; border-radius: var(--dash-radius); box-shadow: var(--dash-shadow); padding: 20px 22px; }
+  #view-dashboard .card:hover, #view-brand-editor .card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.12); }
+  /* Boutons */
+  #view-dashboard .btn-primary, #view-brand-editor .btn-primary { background: linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); color:#fff; border:none; border-radius:50px; box-shadow:0 4px 16px rgba(245,196,0,0.4); }
+  #view-dashboard .btn-primary:hover, #view-brand-editor .btn-primary:hover { transform: translateY(-2px); box-shadow:0 6px 20px rgba(245,196,0,0.5); }
+  #view-dashboard .btn-secondary, #view-brand-editor .btn-secondary { background: var(--dash-card); color: var(--dash-text); border:none; border-radius:50px; box-shadow: var(--dash-shadow); }
+  #view-dashboard .btn-secondary:hover, #view-brand-editor .btn-secondary:hover { transform: translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.12); background: var(--dash-card); }
+  #view-dashboard .btn-danger { border-radius:50px; box-shadow: var(--dash-shadow); }
+  /* Champs */
+  #view-dashboard input, #view-dashboard textarea, #view-dashboard select,
+  #view-brand-editor input, #view-brand-editor textarea, #view-brand-editor select {
+    background: var(--dash-card); border: 2px solid transparent; border-radius: var(--dash-radius-sm); box-shadow: var(--dash-shadow); color: var(--dash-text);
+  }
+  #view-dashboard input:focus, #view-dashboard textarea:focus, #view-dashboard select:focus,
+  #view-brand-editor input:focus, #view-brand-editor textarea:focus, #view-brand-editor select:focus {
+    border-color: var(--dash-yellow); outline:none; box-shadow: 0 4px 20px rgba(245,196,0,0.2);
+  }
+  #view-dashboard .brand-selector select { background: transparent; box-shadow: none; border: none; }
+  /* Pills de format */
+  #view-dashboard .format-pill { background: var(--dash-card); border:none; color: var(--dash-muted); border-radius:50px; box-shadow: var(--dash-shadow); font-weight:600; padding:8px 18px; }
+  #view-dashboard .format-pill:hover { transform: translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,0.1); background: var(--dash-card); color: var(--dash-text); }
+  #view-dashboard .format-pill.active { background: linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); color:#fff; border:none; box-shadow:0 4px 12px rgba(245,196,0,0.3); }
+  /* Suggestions */
+  #view-dashboard .suggestion-chip { background: var(--dash-card); border:none; border-radius:50px; box-shadow: var(--dash-shadow); color: var(--dash-text); }
+  #view-dashboard .suggestion-chip:hover { background:#FFF8E0; color:#8B6A00; }
+  /* Onglets canaux */
+  #view-dashboard .tabs button { background: var(--dash-card); border:none; border-radius:50px; box-shadow: var(--dash-shadow); color: var(--dash-muted); }
+  #view-dashboard .tabs button.active { background: linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); color:#fff; border:none; box-shadow:0 4px 12px rgba(245,196,0,0.4); }
+  /* Variantes */
+  #view-dashboard .variant-card { background: var(--dash-card); border:2px solid transparent; border-radius: var(--dash-radius-sm); box-shadow: var(--dash-shadow); }
+  #view-dashboard .variant-card:hover { transform: translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.1); }
+  #view-dashboard .variant-card.active { border-color: var(--dash-yellow); background: var(--dash-card); box-shadow:0 4px 20px rgba(245,196,0,0.25); }
+  /* Tags & badges en pills app */
+  #view-dashboard .tag { background:#FFF8E0; color:#8B6A00; border:none; border-radius:50px; font-weight:600; }
+  #view-dashboard .tag.bad { background:#FFF0ED; color:#C04A30; border:none; }
+  #view-dashboard .badge { border:none; box-shadow: var(--dash-shadow); }
+  /* Cartes Brand Memory : blanches + barre colorée en haut */
+  #view-dashboard #mem-display .mem-item { background: var(--dash-card) !important; border:none !important; box-shadow: var(--dash-shadow); border-radius: var(--dash-radius); border-top:4px solid var(--dash-purple) !important; }
+  #view-dashboard #mem-display .mem-item:nth-child(2){ border-top-color: var(--dash-sky) !important; }
+  #view-dashboard #mem-display .mem-item:nth-child(3){ border-top-color: var(--dash-yellow) !important; }
+  #view-dashboard #mem-display .mem-item:nth-child(4){ border-top-color: var(--dash-peach) !important; }
+  #view-dashboard #mem-display .mem-item:nth-child(5){ border-top-color: var(--dash-green) !important; }
+  #view-dashboard .mem-item h4 { color: var(--dash-muted); }
+  /* KPIs & encarts analytics : cartes blanches à barre colorée */
+  #view-dashboard #analytics-kpis > div { background: var(--dash-card) !important; border:none !important; border-radius: var(--dash-radius); box-shadow: var(--dash-shadow); border-top:4px solid var(--dash-yellow) !important; }
+  #view-dashboard #analytics-kpis > div:nth-child(2){ border-top-color: var(--dash-sky) !important; }
+  #view-dashboard #analytics-kpis > div:nth-child(3){ border-top-color: var(--dash-green) !important; }
+  #view-dashboard #analytics-kpis > div:nth-child(4){ border-top-color: var(--dash-peach) !important; }
+  #view-dashboard #analytics-charts-row > div, #view-dashboard #analytics-insights-row > div { border:none !important; border-radius: var(--dash-radius); box-shadow: var(--dash-shadow); }
+  /* Tableau admin/analytics en carte douce */
+  #view-dashboard .admin-table { border:none; border-radius: var(--dash-radius); box-shadow: var(--dash-shadow); }
+  #view-dashboard .admin-table th { background:#FFF8E0; color:#8B6A00; }
+  /* Éditeur de marque : zones de dépôt douces */
+  #view-dashboard #mem-dropzone, #view-brand-editor .dropzone { border:2px dashed var(--dash-yellow); background:#FFF8E0; border-radius: var(--dash-radius); }
 </style>
 </head>
 <body>
