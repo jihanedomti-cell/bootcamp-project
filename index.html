@@ -2068,8 +2068,12 @@ async function adaptTemplate(){
     const text=localAdaptTemplate(currentTemplate.structure, state.selectedBrand, sujet);
     document.getElementById('template-result-text').textContent=text;
     result.style.display='block';
-    try{ await db.from('generated_contents').insert({ brand_id:state.selectedBrand.id, user_id:state.user.id, sujet:sujet||currentTemplate.titre, format:currentTemplate.canal+' — '+currentTemplate.titre, contenu:text }); }catch(e){}
-    if(typeof loadHistorique==='function') loadHistorique();
+    if(hasUnresolvedPlaceholder(text)){
+      showToast('Contenu affiché mais NON enregistré : un champ n\'a pas pu être rempli (placeholder).','err');
+    } else {
+      try{ await db.from('generated_contents').insert({ brand_id:state.selectedBrand.id, user_id:state.user.id, sujet:sujet||currentTemplate.titre, format:currentTemplate.canal+' — '+currentTemplate.titre, contenu:text }); }catch(e){}
+      if(typeof loadHistorique==='function') loadHistorique();
+    }
   }catch(e){ showToast('Erreur lors de l\'adaptation. Réessayez.','err'); }
   finally{ loader.style.display='none'; btn.disabled=false; }
 }
@@ -2335,6 +2339,9 @@ async function generateBatch(){
   const style=document.getElementById('batch-format').value;
   if(!state.selectedBrand || !state.selectedBrand.brand_memory){ showToast('Sélectionnez une marque avec une Brand Memory.','err'); return; }
   if(!theme){ showToast('Entrez un thème pour la semaine.','err'); return; }
+  if(theme.length<4){ showToast('Le thème est trop court — précisez-le (ex. « coulisses », « prospection »).','err'); return; }
+  // Le thème est repris tel quel dans TOUS les posts → on demande de vérifier l'orthographe (anti faute de frappe type « colisses »)
+  if(!confirm(`Le thème « ${theme} » sera repris dans les ${nombre} posts.\n\nVérifiez l'orthographe avant de continuer.`)) return;
   const loaderEl=document.getElementById('batch-loader');
   const btn=document.getElementById('batch-btn');
   const progressBar=document.getElementById('batch-progress-bar');
@@ -2356,9 +2363,12 @@ async function generateBatch(){
     setTimeout(async ()=>{
       loaderEl.style.display='none';
       renderBatchResults(posts, canal);
+      let skipped=0;
       for(const post of posts){
+        if(hasUnresolvedPlaceholder(post.contenu)){ skipped++; continue; }
         try{ await db.from('generated_contents').insert({ brand_id:state.selectedBrand.id, user_id:state.user.id, sujet:post.sujet, format:canal+' — '+style, contenu:post.contenu }); }catch(e){}
       }
+      if(skipped) showToast(skipped+' post(s) non enregistré(s) : un champ n\'a pas été rempli.','err');
       loadHistorique();
     },350);
   }catch(e){
@@ -2598,6 +2608,9 @@ async function declineFormats(){
   document.querySelectorAll('#gen-formats .format-pill').forEach(b=>b.classList.toggle('active', b.textContent===next));
   await generateVariants(sujet, next);
 }
+/* Détecte un placeholder non résolu (crochet résiduel type [Accroche], [secteur]…)
+   pour empêcher d'enregistrer un contenu incomplet. */
+function hasUnresolvedPlaceholder(txt){ return /\[[^\]\n]{2,40}\]/.test(String(txt||'')); }
 async function generateVariants(sujet, fmt){
   loader(true,'Génération des 3 variantes...');
   const label=`${state.currentChannel} — ${fmt}`;
@@ -2609,7 +2622,9 @@ async function generateVariants(sujet, fmt){
   state.genRowId=null;
   // Enregistre la variante sélectionnée (par défaut la 1ère) dans generated_contents
   const first=state.currentVariants[0];
-  if(first){
+  if(first && hasUnresolvedPlaceholder(first.contenu)){
+    showToast('Contenu non enregistré : un champ n\'a pas été rempli (placeholder).','err');
+  } else if(first){
     const ins=await db.from('generated_contents').insert({
       brand_id:state.selectedBrand.id, user_id:state.user.id, sujet, format:label, contenu:first.contenu
     }).select().single();
