@@ -702,7 +702,7 @@
         <div class="small">Plan actuel</div>
         <div class="row" style="justify-content:space-between;margin-top:6px;">
           <span class="badge" id="plan-badge">Solo</span>
-          <button class="btn-ghost btn-sm" onclick="showToast('Gestion de l\'abonnement bientôt disponible.','ok')">Gérer</button>
+          <button class="btn-ghost btn-sm" onclick="showSection('pricing')">Gérer</button>
         </div>
       </div>
     </aside>
@@ -1071,6 +1071,77 @@
             <button class="btn-secondary" style="color:#C0392B; flex-shrink:0" onclick="deleteAccount()">Supprimer</button>
           </div>
         </div>
+      </div>
+
+      <!-- Pricing -->
+      <div id="panel-pricing" style="display:none">
+        <div style="text-align:center; margin-bottom:36px">
+          <h2 style="margin-bottom:8px">Choisissez votre plan</h2>
+          <p class="small" style="font-size:15px">Essai gratuit de 7 jours sur chaque formule. Sans engagement, sans carte bancaire.</p>
+          <div style="display:inline-flex; align-items:center; gap:12px; margin-top:20px; background:var(--dash-card); border-radius:50px; padding:6px 16px; box-shadow:var(--dash-shadow)">
+            <span id="toggle-monthly" style="font-size:13px; font-weight:600; cursor:pointer; color:var(--dash-text)" onclick="if(billingAnnual)toggleBilling()">Mensuel</span>
+            <div onclick="toggleBilling()" id="billing-toggle" style="width:44px; height:24px; background:linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); border-radius:12px; position:relative; cursor:pointer">
+              <div id="billing-toggle-dot" style="width:18px; height:18px; background:#fff; border-radius:50%; position:absolute; top:3px; left:3px; transition:all 0.2s"></div>
+            </div>
+            <span id="toggle-annual" style="font-size:13px; font-weight:600; cursor:pointer; color:var(--dash-muted)" onclick="if(!billingAnnual)toggleBilling()">Annuel <span style="background:var(--dash-green); color:#fff; font-size:11px; padding:2px 8px; border-radius:10px; margin-left:4px">-20%</span></span>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; max-width:940px; margin:0 auto; align-items:start">
+
+          <div class="card" id="plan-solo-card" style="position:relative">
+            <div style="font-size:14px; font-weight:700; color:var(--dash-muted); margin-bottom:16px; text-transform:uppercase; letter-spacing:0.8px">Solo</div>
+            <div style="display:flex; align-items:baseline; gap:4px; margin-bottom:6px"><span style="font-family:var(--font-title); font-size:42px; font-weight:700" id="price-solo">19€</span><span class="small">/mois</span></div>
+            <div class="small" style="margin-bottom:24px">Pour les solopreneurs et créateurs de contenu</div>
+            <button onclick="selectPlan('solo')" id="btn-solo" class="btn-secondary" style="width:100%; margin-bottom:24px">Commencer l'essai gratuit</button>
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <div style="font-size:13px; display:flex; gap:8px"><span style="color:var(--dash-green); font-weight:700">✓</span> 1 marque</div>
+              <div style="font-size:13px; display:flex; gap:8px"><span style="color:var(--dash-green); font-weight:700">✓</span> Tous les formats de posts</div>
+              <div style="font-size:13px; display:flex; gap:8px"><span style="color:var(--dash-green); font-weight:700">✓</span> Brand Memory illimitée</div>
+              <div style="font-size:13px; display:flex; gap:8px"><span style="color:var(--dash-green); font-weight:700">✓</span> Historique des générations</div>
+              <div style="font-size:13px; display:flex; gap:8px; opacity:0.4"><span>✗</span> Calendrier éditorial</div>
+              <div style="font-size:13px; display:flex; gap:8px; opacity:0.4"><span>✗</span> Mode Batch</div>
+              <div style="font-size:13px; display:flex; gap:8px; opacity:0.4"><span>✗</span> Accès équipe</div>
+            </div>
+          </div>
+
+          <div class="card" id="plan-pro-card" style="position:relative; border:2px solid var(--dash-yellow); transform:scale(1.04); box-shadow:0 8px 32px rgba(0,0,0,0.14)">
+            <div style="position:absolute; top:-14px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); color:#fff; font-size:12px; font-weight:700; padding:4px 16px; border-radius:20px; white-space:nowrap">⭐ Le plus choisi</div>
+            <div style="font-size:14px; font-weight:700; color:var(--dash-muted); margin-bottom:16px; text-transform:uppercase; letter-spacing:0.8px">Pro</div>
+            <div style="display:flex; align-items:baseline; gap:4px; margin-bottom:6px"><span style="font-family:var(--font-title); font-size:42px; font-weight:700" id="price-pro">49€</span><span class="small">/mois</span></div>
+            <div class="small" style="margin-bottom:24px">Pour les petites agences et freelances</div>
+            <button onclick="selectPlan('pro')" id="btn-pro" class="btn-primary" style="width:100%; margin-bottom:24px">Commencer l'essai gratuit</button>
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <div style="font-size:13px; display:flex; gap:8px"><span style="color:var(--dash-green); font-weight:700">✓</span> Jusqu'à 10 marques</div>
+              <div style="font-size:13px; display:flex; gap:8px"><span style="color:var(--dash-green); font-weight:700">✓</span> Tous les formats de posts</div>
+              <div style="font-size:13px; display:flex; gap:8px"><span style="color:var(--dash-green); font-weight:700">✓</span> Brand Memory illimitée</div>
+              <div style="font-size:13px; display:flex; gap:8px"><span style="color:var(--dash-green); font-weight:700">✓</span> Calendrier éditorial</div>
+              <div style="font-size:13px; display:flex; gap:8px"><span style="color:var(--dash-green); font-weight:700">✓</span> Mode Batch</div>
+              <div style="font-size:13px; display:flex; gap:8px"><span style="color:var(--dash-green); font-weight:700">✓</span> Export PDF calendrier</div>
+              <div style="font-size:13px; display:flex; gap:8px; opacity:0.4"><span>✗</span> Accès équipe</div>
+            </div>
+          </div>
+
+          <div id="plan-business-card" style="background:#1A1A1A; border-radius:var(--dash-radius); padding:24px; position:relative; color:#fff; box-shadow:var(--dash-shadow)">
+            <div style="font-size:14px; font-weight:700; color:rgba(255,255,255,0.6); margin-bottom:16px; text-transform:uppercase; letter-spacing:0.8px">Business</div>
+            <div style="display:flex; align-items:baseline; gap:4px; margin-bottom:6px"><span style="font-family:var(--font-title); font-size:42px; font-weight:700" id="price-business">99€</span><span style="font-size:14px; color:rgba(255,255,255,0.6)">/mois</span></div>
+            <div style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:24px">Pour les agences avec équipe</div>
+            <button onclick="selectPlan('business')" id="btn-business" style="width:100%; margin-bottom:24px; padding:13px; background:#fff; color:#1A1A1A; border:none; border-radius:50px; font-weight:700; font-size:14px; cursor:pointer; transition:all 0.2s" onmouseover="this.style.background='var(--dash-yellow)'" onmouseout="this.style.background='#fff'">Commencer l'essai gratuit</button>
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <div style="font-size:13px; display:flex; gap:8px; color:#fff"><span style="color:var(--dash-green); font-weight:700">✓</span> Marques illimitées</div>
+              <div style="font-size:13px; display:flex; gap:8px; color:#fff"><span style="color:var(--dash-green); font-weight:700">✓</span> Tous les formats de posts</div>
+              <div style="font-size:13px; display:flex; gap:8px; color:#fff"><span style="color:var(--dash-green); font-weight:700">✓</span> Brand Memory illimitée</div>
+              <div style="font-size:13px; display:flex; gap:8px; color:#fff"><span style="color:var(--dash-green); font-weight:700">✓</span> Calendrier éditorial</div>
+              <div style="font-size:13px; display:flex; gap:8px; color:#fff"><span style="color:var(--dash-green); font-weight:700">✓</span> Mode Batch</div>
+              <div style="font-size:13px; display:flex; gap:8px; color:#fff"><span style="color:var(--dash-green); font-weight:700">✓</span> Accès équipe complet</div>
+              <div style="font-size:13px; display:flex; gap:8px; color:#fff"><span style="color:var(--dash-green); font-weight:700">✓</span> Support prioritaire</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="text-align:center; margin-top:32px" class="small">✓ Sans engagement · ✓ Annulation en 1 clic · ✓ Données sécurisées · ✓ Support français</div>
+        <div id="current-plan-notice" style="text-align:center; margin-top:16px; font-size:13px; color:var(--dash-peach); font-weight:600"></div>
       </div>
     </main>
   </div>
@@ -1608,6 +1679,7 @@ function setNavActive(el){
 function exitAdmin(){
   document.getElementById('panel-admin').style.display='none';
   const ps=document.getElementById('panel-settings'); if(ps) ps.style.display='none';
+  const pp=document.getElementById('panel-pricing'); if(pp) pp.style.display='none';
   document.getElementById('dash-brand').style.display='block';
 }
 function navTo(name,el){
@@ -1640,7 +1712,7 @@ function setHeaderPill(section){
 }
 function showSection(section){
   if(section==='settings'){ showSettings(); return; }
-  if(section==='pricing'){ showToast('Gestion de l\'abonnement bientôt disponible.','ok'); return; }
+  if(section==='pricing'){ showPricing(); return; }
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
   if(section==='brand-memory') navTo('memory', null);
   else if(section==='calendar') navTo('calendar', null);
@@ -1718,6 +1790,56 @@ async function deleteAccount(){
     await db.auth.signOut();
     window.location.reload();
   }catch(e){ showToast('Erreur lors de la suppression.','err'); }
+}
+
+/* ---- Page Pricing (dashboard) ---- */
+let billingAnnual=false;
+const PRICING={ monthly:{solo:'19€',pro:'49€',business:'99€'}, annual:{solo:'15€',pro:'39€',business:'79€'} };
+function showPricing(){
+  if(!state.user){ showToast('Connectez-vous d\'abord.','err'); return; }
+  document.getElementById('dash-empty').style.display='none';
+  document.getElementById('dash-brand').style.display='none';
+  const ad=document.getElementById('panel-admin'); if(ad) ad.style.display='none';
+  const ps=document.getElementById('panel-settings'); if(ps) ps.style.display='none';
+  const pp=document.getElementById('panel-pricing');
+  pp.style.display='block'; pp.classList.remove('animate-in'); void pp.offsetWidth; pp.classList.add('animate-in');
+  setNavActive(null);
+  document.querySelectorAll('.header-nav-pill').forEach(p=>p.classList.remove('active'));
+  loadPricingPage();
+}
+function toggleBilling(){
+  billingAnnual=!billingAnnual;
+  const dot=document.getElementById('billing-toggle-dot');
+  const monthly=document.getElementById('toggle-monthly');
+  const annual=document.getElementById('toggle-annual');
+  if(billingAnnual){ if(dot) dot.style.left='23px'; if(monthly) monthly.style.color='var(--dash-muted)'; if(annual) annual.style.color='var(--dash-text)'; }
+  else { if(dot) dot.style.left='3px'; if(monthly) monthly.style.color='var(--dash-text)'; if(annual) annual.style.color='var(--dash-muted)'; }
+  const p=billingAnnual?PRICING.annual:PRICING.monthly;
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('price-solo',p.solo); set('price-pro',p.pro); set('price-business',p.business);
+}
+async function selectPlan(plan){
+  if(!state.user) return;
+  try{
+    await db.from('profiles').update({ plan }).eq('id',state.user.id);
+    if(state.profile) state.profile.plan=plan;
+    const pb=document.getElementById('plan-badge'); if(pb) pb.textContent=(PLAN_LABEL&&PLAN_LABEL[plan])||(plan.charAt(0).toUpperCase()+plan.slice(1));
+    showToast('Plan '+plan+' activé ! Votre essai gratuit commence maintenant.','ok');
+    loadPricingPage();
+    setTimeout(()=>showSection('brand-memory'),1800);
+  }catch(e){ showToast('Erreur lors du changement de plan.','err'); }
+}
+async function loadPricingPage(){
+  if(!state.user) return;
+  let currentPlan=state.profile?.plan||'solo';
+  try{ const { data }=await db.from('profiles').select('plan').eq('id',state.user.id).single(); if(data&&data.plan) currentPlan=data.plan; }catch(e){}
+  const notice=document.getElementById('current-plan-notice');
+  if(notice) notice.textContent='✦ Vous êtes actuellement sur le plan '+currentPlan.charAt(0).toUpperCase()+currentPlan.slice(1);
+  ['solo','pro','business'].forEach(p=>{
+    const btn=document.getElementById('btn-'+p); if(!btn) return;
+    if(p===currentPlan){ btn.textContent='✓ Plan actuel'; btn.disabled=true; btn.style.opacity='0.6'; }
+    else { btn.textContent='Commencer l\'essai gratuit'; btn.disabled=false; btn.style.opacity='1'; }
+  });
 }
 function renderChannelView(){
   const ch=CHANNELS[state.currentChannel]; if(!ch) return;
