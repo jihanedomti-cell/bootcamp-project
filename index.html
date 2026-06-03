@@ -746,7 +746,10 @@
               </div>
             </div>
           </div>
-          <button class="btn-primary" onclick="doCalendar()">Générer le calendrier</button>
+          <div class="row" style="gap:10px; flex-wrap:wrap">
+            <button class="btn-primary" onclick="doCalendar()">Générer le calendrier</button>
+            <button class="btn-secondary btn-sm" id="export-pdf-btn" style="display:none" onclick="exportCalendarPDF()">📄 Exporter en PDF</button>
+          </div>
           <div id="cal-agenda" style="margin-top:24px"></div>
         </div>
       </div>
@@ -862,6 +865,8 @@
 <!-- Extraction de texte : PDF (pdf.js) et Word .docx (mammoth.js) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<!-- Export PDF du calendrier (jsPDF) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 /* =========================================================================
    CONFIGURATION
@@ -2198,8 +2203,71 @@ async function doCalendar(){
   showToast(`${state.calendarItems.length} contenus planifiés ✓`,'ok');
 }
 
+/* ---- Export PDF du calendrier éditorial (jsPDF, côté navigateur) ---- */
+function exportCalendarPDF(){
+  if(!window.jspdf || !window.jspdf.jsPDF){ showToast('Librairie PDF non chargée. Vérifiez votre connexion et réessayez.','err'); return; }
+  const items=(state.calendarItems||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if(!items.length){ showToast('Générez d\'abord un calendrier.','err'); return; }
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const brandName=state.selectedBrand?state.selectedBrand.nom:'Marque';
+  const today=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+  const accent=[245,200,0], dark=[26,46,31], gray=[107,101,96], border=[232,226,214], bg=[250,250,242];
+  const fmtDate=(d)=>{ try{ return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}); }catch(e){ return d; } };
+
+  // ── Couverture ──
+  doc.setFillColor(...bg); doc.rect(0,0,210,297,'F');
+  doc.setFillColor(...accent); doc.rect(0,0,210,8,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(28); doc.setTextColor(...dark);
+  doc.text('Brief to Brand',20,50);
+  doc.setFont('helvetica','normal'); doc.setFontSize(14); doc.setTextColor(...gray);
+  doc.text('Calendrier éditorial',20,62);
+  doc.setDrawColor(...border); doc.setLineWidth(0.5); doc.line(20,72,190,72);
+  doc.setFont('helvetica','bold'); doc.setFontSize(22); doc.setTextColor(...dark);
+  doc.text(brandName,20,95);
+  doc.setFont('helvetica','normal'); doc.setFontSize(12); doc.setTextColor(...gray);
+  doc.text('Généré le '+today,20,106);
+  if(state.selectedBrand && state.selectedBrand.secteur){ doc.text('Secteur : '+state.selectedBrand.secteur,20,115); }
+  doc.text(items.length+' publication(s) planifiée(s)',20,130);
+  doc.setFillColor(...accent); doc.rect(0,289,210,8,'F');
+  doc.setFontSize(9); doc.setTextColor(255,255,255); doc.text('Brief to Brand',20,294.5);
+
+  // ── Pages de contenu ──
+  doc.addPage();
+  doc.setFillColor(...bg); doc.rect(0,0,210,297,'F');
+  doc.setFillColor(...accent); doc.rect(0,0,210,8,'F');
+  let y=24;
+  doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(...dark);
+  doc.text('Planning de publication',20,y); y+=14;
+
+  items.forEach(item=>{
+    const sujetLines=doc.splitTextToSize(item.sujet||'(sans sujet)',150);
+    const angleLines=item.angle?doc.splitTextToSize(item.angle,150).slice(0,3):[];
+    const cardHeight=20 + sujetLines.length*5 + (angleLines.length?angleLines.length*4.5+3:0);
+    if(y+cardHeight>278){
+      doc.addPage(); doc.setFillColor(...bg); doc.rect(0,0,210,297,'F');
+      doc.setFillColor(...accent); doc.rect(0,0,210,8,'F'); y=24;
+    }
+    doc.setFillColor(255,255,255); doc.setDrawColor(...border); doc.setLineWidth(0.3);
+    doc.roundedRect(20,y,170,cardHeight,3,3,'FD');
+    doc.setFillColor(...accent); doc.rect(20,y,3,cardHeight,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...dark);
+    doc.text(fmtDate(item.date),30,y+9);
+    if(item.reseau){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...gray); doc.text(String(item.reseau),186,y+9,{align:'right'}); }
+    let yy=y+17;
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...dark);
+    doc.text(sujetLines,30,yy); yy+=sujetLines.length*5;
+    if(angleLines.length){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...gray); doc.text(angleLines,30,yy+1); }
+    y+=cardHeight+8;
+  });
+
+  const slug=brandName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'marque';
+  doc.save('calendrier-'+slug+'-'+new Date().toISOString().slice(0,10)+'.pdf');
+}
+
 function renderCalendarGrid(){
   const box=document.getElementById('cal-agenda'); if(!box) return;
+  const expBtn=document.getElementById('export-pdf-btn'); if(expBtn) expBtn.style.display=(state.calendarItems&&state.calendarItems.length)?'inline-block':'none';
   ensureCalMonth();
   const year=state.calMonth.getFullYear(), month=state.calMonth.getMonth();
   const daysInMonth=new Date(year, month+1, 0).getDate();
