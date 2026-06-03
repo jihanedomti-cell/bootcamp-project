@@ -878,6 +878,7 @@ const DEMO_MODE = true;
 let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true, calMonth: null, calendarItems: [], currentVariants: [], selectedVariantIdx: 0, genRowId: null, genContext: null, memFiles: [] };
 let allHistoriqueItems = [];
 let lastBatchPosts = [];
+let editorModified = false;
 
 /* ---------- Utilitaires UI ---------- */
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
@@ -1484,6 +1485,7 @@ async function generateVariants(sujet, fmt){
   state.genContext={ sujet, fmt };
   const res=await callGenerateVariants(state.selectedBrand, sujet, label);
   state.currentVariants=(res && res.variantes)||[];
+  state.variantOriginals=state.currentVariants.map(v=>v.contenu);
   state.selectedVariantIdx=0;
   state.genRowId=null;
   // Enregistre la variante sélectionnée (par défaut la 1ère) dans generated_contents
@@ -1866,14 +1868,26 @@ function renderVariants(){
       <div style="flex:0 0 210px; display:flex; flex-direction:column; gap:10px">${left}</div>
       <div style="flex:1; min-width:280px"><div id="variant-preview-host"></div></div>
     </div>
+
+    <div class="card" style="padding:0; overflow:hidden; margin-top:18px">
+      <div style="display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1.5px solid var(--border); background:var(--bg-section); flex-wrap:wrap">
+        <span id="editor-status" style="font-size:12px; color:var(--text-muted)">✏️ Cliquez dans le texte pour le modifier</span>
+        <div style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap">
+          <button class="btn-secondary btn-sm" id="regen-selection-btn" style="display:none" onclick="regenerateSelection()">↺ Réécrire la sélection</button>
+          <button class="btn-secondary btn-sm" id="reset-editor-btn" style="display:none" onclick="resetEditor()">↩ Annuler</button>
+          <button class="btn-secondary btn-sm" id="editor-copy-btn" onclick="copyEditor()">Copier</button>
+        </div>
+      </div>
+      <div id="gen-editor" contenteditable="true" spellcheck="true" style="white-space:pre-wrap; line-height:1.8; font-size:15px; outline:none; min-height:60px; cursor:text; padding:14px 16px; color:var(--text-main); transition:background 0.2s" onfocus="onEditorFocus(this)" onblur="onEditorBlur(this)" oninput="onEditorInput()"></div>
+    </div>
+
     <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
-      <button class="btn-secondary btn-sm" id="variant-copy">Copier ce contenu</button>
-      <button class="btn-secondary btn-sm" id="variant-regen">Regénérer</button>
+      <button class="btn-secondary btn-sm" id="variant-regen">Regénérer (3 nouvelles variantes)</button>
     </div>`;
   box.querySelectorAll('.variant-card').forEach(c=>{ c.onclick=()=>selectVariant(+c.getAttribute('data-i'), true); });
-  document.getElementById('variant-copy').onclick=copySelectedVariant;
   document.getElementById('variant-regen').onclick=regenerateContent;
   renderPreview();
+  setEditorContent(vs[state.selectedVariantIdx] ? vs[state.selectedVariantIdx].contenu : '');
 }
 async function regenerateContent(){
   const sujet=(state.genContext&&state.genContext.sujet)||document.getElementById('gen-sujet').value.trim();
@@ -1885,6 +1899,7 @@ function selectVariant(i, save){
   state.selectedVariantIdx=i;
   document.querySelectorAll('#gen-results .variant-card').forEach((c,idx)=>c.classList.toggle('active', idx===i));
   renderPreview();
+  setEditorContent(state.currentVariants[i] ? state.currentVariants[i].contenu : '');
   updateCoherenceScore();
   if(save) saveSelectedVariant();
 }
@@ -1899,6 +1914,84 @@ async function saveSelectedVariant(){
   const v=state.currentVariants[state.selectedVariantIdx]; if(!v || !state.genRowId) return;
   try{ await db.from('generated_contents').update({ contenu:v.contenu }).eq('id',state.genRowId); }catch(e){}
 }
+
+/* ---- Éditeur inline du contenu généré ---- */
+function setEditorContent(contenu){
+  const editor=document.getElementById('gen-editor'); if(!editor) return;
+  editor.textContent=contenu||'';
+  editorModified=false;
+  const status=document.getElementById('editor-status'); if(status) status.textContent='✏️ Cliquez dans le texte pour le modifier';
+  const resetBtn=document.getElementById('reset-editor-btn'); if(resetBtn) resetBtn.style.display='none';
+  const regenBtn=document.getElementById('regen-selection-btn'); if(regenBtn) regenBtn.style.display='none';
+}
+function onEditorFocus(el){ el.style.background='var(--bg-section)'; }
+function onEditorBlur(el){ el.style.background='transparent'; if(editorModified) saveSelectedVariant(); }
+function onEditorInput(){
+  const editor=document.getElementById('gen-editor'); if(!editor) return;
+  editorModified=true;
+  const v=state.currentVariants[state.selectedVariantIdx];
+  if(v){ v.contenu=editor.innerText; }
+  renderPreview();
+  const status=document.getElementById('editor-status'); if(status) status.textContent='✏️ Modifié (non enregistré tant que vous éditez)';
+  const resetBtn=document.getElementById('reset-editor-btn'); if(resetBtn) resetBtn.style.display='inline-block';
+}
+function resetEditor(){
+  const orig=(state.variantOriginals||[])[state.selectedVariantIdx];
+  if(orig==null) return;
+  const v=state.currentVariants[state.selectedVariantIdx]; if(v) v.contenu=orig;
+  setEditorContent(orig);
+  renderPreview();
+  saveSelectedVariant();
+  showToast('Modifications annulées ✓','ok');
+}
+function copyEditor(){
+  const editor=document.getElementById('gen-editor'); if(!editor) return;
+  navigator.clipboard.writeText(editor.innerText||editor.textContent||'');
+  const b=document.getElementById('editor-copy-btn');
+  if(b){ b.textContent='Copié ✓'; b.style.color='var(--green)'; setTimeout(()=>{ b.textContent='Copier'; b.style.color=''; },2000); }
+}
+// Réécriture locale d'un passage (mode démo) : nettoie les mots interdits + léger lissage stylistique
+const REWRITE_SYN={'super':'remarquable','très':'particulièrement','beaucoup':'énormément','important':'essentiel','rapide':'efficace','bien':'parfaitement','vraiment':'réellement','chose':'élément','truc':'point'};
+function localRewritePassage(text, m){
+  let out=String(text||'').trim();
+  ((m&&m.mots_interdits)||[]).filter(Boolean).forEach(b=>{ out=out.replace(new RegExp('\\b'+escapeReg(b)+'\\b','gi'),''); });
+  out=out.replace(/\b([a-zàâäéèêëïîôöùûüç]+)\b/gi, w=>{ const r=REWRITE_SYN[w.toLowerCase()]; return r?(w[0]===w[0].toUpperCase()?r.charAt(0).toUpperCase()+r.slice(1):r):w; });
+  out=out.replace(/[ \t]{2,}/g,' ').replace(/ +([.,;:!?])/g,'$1').trim();
+  if(out) out=out.charAt(0).toUpperCase()+out.slice(1);
+  if(out && !/[.!?…»]$/.test(out)) out+='.';
+  return out||String(text||'');
+}
+async function regenerateSelection(){
+  const editor=document.getElementById('gen-editor'); if(!editor) return;
+  const sel=window.getSelection(); if(!sel||!sel.rangeCount) return;
+  const selectedText=sel.toString().trim();
+  if(selectedText.length<3){ showToast('Sélectionnez d\'abord un passage à réécrire.','err'); return; }
+  if(!state.selectedBrand || !state.selectedBrand.brand_memory){ showToast('Sélectionnez une marque avec une Brand Memory.','err'); return; }
+  const btn=document.getElementById('regen-selection-btn');
+  const orig=btn?btn.textContent:''; if(btn){ btn.textContent='…'; btn.disabled=true; }
+  await wait(500);
+  try{
+    if(!DEMO_MODE){ /* TODO: Edge Function sécurisée (clé API côté serveur, jamais ici) */ }
+    const newText=localRewritePassage(selectedText, state.selectedBrand.brand_memory);
+    const range=sel.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(document.createTextNode(newText));
+    sel.removeAllRanges();
+    onEditorInput();
+    if(btn) btn.style.display='none';
+  }catch(e){ showToast('Erreur lors de la réécriture.','err'); }
+  finally{ if(btn){ btn.textContent=orig; btn.disabled=false; } }
+}
+// Afficher "Réécrire la sélection" quand un passage est sélectionné dans l'éditeur
+document.addEventListener('selectionchange', ()=>{
+  const btn=document.getElementById('regen-selection-btn');
+  const editor=document.getElementById('gen-editor');
+  if(!btn||!editor) return;
+  const sel=window.getSelection();
+  const txt=sel?sel.toString().trim():'';
+  if(txt.length>10 && sel.anchorNode && editor.contains(sel.anchorNode)) btn.style.display='inline-block';
+  else if(!txt) btn.style.display='none';
+});
 function renderPreview(){
   const host=document.getElementById('variant-preview-host'); if(!host) return;
   const v=state.currentVariants[state.selectedVariantIdx]; const txt=v?v.contenu:'';
