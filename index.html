@@ -260,6 +260,9 @@
   .suggestion-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 20px; font-size: 13px; color: var(--text-main); background: var(--white); cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
   .suggestion-chip:hover { border-color: var(--peach); color: #7A3020; background: var(--peach-light); }
   #gen-sujet.flash { border-color: var(--yellow); box-shadow: 0 0 0 3px rgba(245,200,0,0.25); }
+  .lang-chip { padding: 6px 16px; border-radius: 20px; border: 1.5px solid var(--border); font-size: 13px; cursor: pointer; background: var(--white); color: var(--text-main); transition: all 0.15s; }
+  .lang-chip:hover { border-color: var(--peach); }
+  .lang-chip.active { border-color: var(--green); background: var(--bg-section); font-weight: 600; }
   .format-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 18px; }
   .format-list label { display: flex; align-items: center; gap: 8px; background: var(--white); border: 1.5px solid var(--border); padding: 6px 16px; border-radius: 20px; cursor: pointer; margin: 0; color: var(--text-muted); font-size: 13px; font-weight: 500; transition: all 0.2s; }
   .format-list label:hover { border-color: var(--peach); color: var(--dark); background: var(--peach-light); }
@@ -879,6 +882,7 @@ let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraf
 let allHistoriqueItems = [];
 let lastBatchPosts = [];
 let editorModified = false;
+let selectedLang = null;
 
 /* ---------- Utilitaires UI ---------- */
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
@@ -1883,6 +1887,33 @@ function renderVariants(){
 
     <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
       <button class="btn-secondary btn-sm" id="variant-regen">Regénérer (3 nouvelles variantes)</button>
+      <button class="btn-secondary btn-sm" id="translate-btn" onclick="showTranslatePanel()">🌍 Traduire &amp; adapter</button>
+    </div>
+
+    <div id="translate-panel" style="display:none; margin-top:16px; border:1.5px solid var(--border); border-radius:12px; background:var(--white); overflow:hidden">
+      <div style="padding:12px 16px; border-bottom:1.5px solid var(--border); display:flex; align-items:center; justify-content:space-between">
+        <div style="font-size:13px; font-weight:600; color:var(--text-main)">🌍 Traduire &amp; adapter dans le ton de la marque</div>
+        <button onclick="hideTranslatePanel()" style="background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-muted)">✕</button>
+      </div>
+      <div style="padding:16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+        <div class="small">Traduire en :</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap" id="lang-chips">
+          <div class="lang-chip" data-lang="en" onclick="selectLang('en','Anglais')">🇬🇧 Anglais</div>
+          <div class="lang-chip" data-lang="es" onclick="selectLang('es','Espagnol')">🇪🇸 Espagnol</div>
+          <div class="lang-chip" data-lang="de" onclick="selectLang('de','Allemand')">🇩🇪 Allemand</div>
+          <div class="lang-chip" data-lang="it" onclick="selectLang('it','Italien')">🇮🇹 Italien</div>
+          <div class="lang-chip" data-lang="ar" onclick="selectLang('ar','Arabe')">🇸🇦 Arabe</div>
+        </div>
+        <button class="btn-primary btn-sm" id="translate-go-btn" onclick="translateContent()" disabled>Adapter →</button>
+      </div>
+      <div id="translate-loader" class="small" style="display:none; padding:14px 16px; border-top:1.5px solid var(--border)">Adaptation en cours…</div>
+      <div id="translate-result" style="display:none">
+        <div style="padding:12px 16px; border-top:1.5px solid var(--border); display:flex; align-items:center; justify-content:space-between">
+          <div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--green)" id="translate-result-label">Version adaptée</div>
+          <button id="copy-translated-btn" class="btn-secondary btn-sm" onclick="copyTranslated()">Copier</button>
+        </div>
+        <div id="translate-result-text" style="padding:0 16px 16px; font-size:14px; line-height:1.8; white-space:pre-wrap; color:var(--text-main)"></div>
+      </div>
     </div>`;
   box.querySelectorAll('.variant-card').forEach(c=>{ c.onclick=()=>selectVariant(+c.getAttribute('data-i'), true); });
   document.getElementById('variant-regen').onclick=regenerateContent;
@@ -1923,6 +1954,12 @@ function setEditorContent(contenu){
   const status=document.getElementById('editor-status'); if(status) status.textContent='✏️ Cliquez dans le texte pour le modifier';
   const resetBtn=document.getElementById('reset-editor-btn'); if(resetBtn) resetBtn.style.display='none';
   const regenBtn=document.getElementById('regen-selection-btn'); if(regenBtn) regenBtn.style.display='none';
+  // Réinitialiser le panneau de traduction
+  const tp=document.getElementById('translate-panel'); if(tp) tp.style.display='none';
+  const tr=document.getElementById('translate-result'); if(tr) tr.style.display='none';
+  selectedLang=null;
+  const go=document.getElementById('translate-go-btn'); if(go) go.disabled=true;
+  document.querySelectorAll('#lang-chips .lang-chip').forEach(c=>c.classList.remove('active'));
 }
 function onEditorFocus(el){ el.style.background='var(--bg-section)'; }
 function onEditorBlur(el){ el.style.background='transparent'; if(editorModified) saveSelectedVariant(); }
@@ -1949,6 +1986,47 @@ function copyEditor(){
   navigator.clipboard.writeText(editor.innerText||editor.textContent||'');
   const b=document.getElementById('editor-copy-btn');
   if(b){ b.textContent='Copié ✓'; b.style.color='var(--green)'; setTimeout(()=>{ b.textContent='Copier'; b.style.color=''; },2000); }
+}
+
+/* ---- Adaptation multilingue (UI complète ; traduction = vraie IA, démo honnête en local) ---- */
+function showTranslatePanel(){ const p=document.getElementById('translate-panel'); if(p) p.style.display='block'; }
+function hideTranslatePanel(){ const p=document.getElementById('translate-panel'); if(p) p.style.display='none'; }
+function selectLang(code,name){
+  selectedLang={code,name};
+  document.querySelectorAll('#lang-chips .lang-chip').forEach(c=>c.classList.toggle('active', c.getAttribute('data-lang')===code));
+  const go=document.getElementById('translate-go-btn'); if(go) go.disabled=false;
+}
+async function translateContent(){
+  if(!selectedLang) return;
+  const editor=document.getElementById('gen-editor');
+  const contenu=editor?(editor.innerText||editor.textContent):'';
+  if(!contenu.trim()){ showToast('Aucun contenu à traduire. Générez d\'abord un post.','err'); return; }
+  const loaderEl=document.getElementById('translate-loader');
+  const resultEl=document.getElementById('translate-result');
+  const goBtn=document.getElementById('translate-go-btn');
+  if(loaderEl) loaderEl.style.display='block'; if(resultEl) resultEl.style.display='none'; if(goBtn) goBtn.disabled=true;
+  await wait(700);
+  try{
+    if(!DEMO_MODE){ /* TODO: Edge Function sécurisée → vraie adaptation culturelle par Claude */ }
+    // Démo honnête : aucune fausse traduction (impossible en local sans IA)
+    document.getElementById('translate-result-label').textContent='⚠️ Démo — adaptation en '+selectedLang.name;
+    document.getElementById('translate-result-text').innerHTML=
+      `<div style="padding:12px 14px; border:1.5px dashed var(--peach); border-radius:10px; background:var(--peach-light); color:#7A3020; font-size:13px; line-height:1.6; margin-bottom:12px">`
+      +`🔌 La traduction et l'adaptation culturelle en <strong>${escapeHtml(selectedLang.name)}</strong> nécessitent la vraie IA Claude (impossible à simuler correctement en local). `
+      +`Une fois l'IA activée (via une Edge Function sécurisée), ce bloc affichera ici une <strong>adaptation native en ${escapeHtml(selectedLang.name)}</strong>, dans le ton de ta marque — pas une traduction littérale.</div>`
+      +`<div class="small" style="margin-bottom:4px">Texte d'origine (français), non traduit :</div>`
+      +`<div style="white-space:pre-wrap; color:var(--text-muted)">${escapeHtml(contenu)}</div>`;
+    if(resultEl) resultEl.style.display='block';
+  }catch(e){ showToast('Erreur lors de l\'adaptation.','err'); }
+  finally{ if(loaderEl) loaderEl.style.display='none'; if(goBtn) goBtn.disabled=false; }
+}
+function copyTranslated(){
+  // En démo, il n'y a pas de traduction réelle → on copie le texte d'origine
+  const editor=document.getElementById('gen-editor');
+  const text=editor?(editor.innerText||editor.textContent||''):'';
+  navigator.clipboard.writeText(text);
+  const btn=document.getElementById('copy-translated-btn');
+  if(btn){ btn.textContent='Copié ✓'; setTimeout(()=>{ btn.textContent='Copier'; },2000); }
 }
 // Réécriture locale d'un passage (mode démo) : nettoie les mots interdits + léger lissage stylistique
 const REWRITE_SYN={'super':'remarquable','très':'particulièrement','beaucoup':'énormément','important':'essentiel','rapide':'efficace','bien':'parfaitement','vraiment':'réellement','chose':'élément','truc':'point'};
