@@ -286,8 +286,11 @@
   .cal-day.empty { background: transparent; border: none; }
   .cal-day.today { border-color: var(--yellow); box-shadow: 0 0 0 1.5px var(--yellow); }
   .cal-daynum { font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
-  .cal-event { background: var(--yellow-light); border: 1px solid var(--yellow); color: #7A6500; border-radius: 6px; padding: 3px 6px; margin-bottom: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-event { background: var(--yellow-light); border: 1px solid var(--yellow); color: #7A6500; border-radius: 6px; padding: 3px 6px; margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
   .cal-event:hover { background: var(--peach-light); border-color: var(--peach); color: #7A3020; }
+  .cal-ev-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-ev-bell { flex-shrink: 0; background: transparent; border: none; cursor: pointer; font-size: 11px; line-height: 1; padding: 0 1px; opacity: 0.7; }
+  .cal-ev-bell:hover { opacity: 1; }
   @media (max-width: 700px){ .cal-day { min-height: 68px; } .cal-event { font-size: 10px; padding: 2px 4px; } }
 
   /* Loader */
@@ -524,7 +527,7 @@
         <a class="brand-item" id="nav-historique" onclick="navTo('historique',this)"><span>◷</span><span>Historique</span><span id="historique-count" style="display:none; margin-left:auto; font-size:11px; background:var(--green); color:#fff; border-radius:10px; padding:1px 7px; font-weight:600;"></span></a>
 
         <div class="side-label">Planning</div>
-        <a class="brand-item" id="nav-calendar" onclick="navTo('calendar',this)"><span>▦</span><span>Calendrier éditorial</span></a>
+        <a class="brand-item" id="nav-calendar" onclick="navTo('calendar',this)"><span>▦</span><span>Calendrier éditorial</span><span id="today-reminder-badge" style="display:none; margin-left:auto; font-size:11px; background:#C0392B; color:#fff; border-radius:10px; padding:1px 7px; font-weight:600"></span></a>
 
         <div id="admin-nav-wrap" style="display:none">
           <div class="side-label">Admin</div>
@@ -759,6 +762,10 @@
 
         <!-- TAB: Calendrier -->
         <div id="panel-calendar" class="tab-panel">
+          <div id="today-reminders-section" style="display:none; margin-bottom:20px; padding:14px 18px; border:1.5px solid var(--border); border-left:3px solid var(--peach); border-radius:0 12px 12px 0; background:var(--white)">
+            <div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:#7A3020; margin-bottom:8px">🔔 À publier aujourd'hui</div>
+            <div id="today-reminders-list" style="display:flex; flex-direction:column; gap:8px"></div>
+          </div>
           <div class="grid-3">
             <div class="field"><label>Période</label><select id="cal-periode"><option value="semaine">Semaine</option><option value="mois">Mois</option></select></div>
             <div class="field"><label>Fréquence</label><select id="cal-freq"><option value="2">2x / semaine</option><option value="3">3x / semaine</option><option value="quotidien">Quotidien</option></select></div>
@@ -886,6 +893,19 @@
 <div id="loader"><div class="spinner"></div><p id="loader-msg">Chargement...</p></div>
 <div id="toast"></div>
 
+<!-- Modal : rappel de publication -->
+<div id="reminder-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; align-items:center; justify-content:center">
+  <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:28px; width:360px; max-width:90vw">
+    <div style="font-size:16px; font-weight:700; color:var(--text-main); margin-bottom:4px">🔔 Rappel de publication</div>
+    <div id="reminder-modal-info" class="small" style="margin-bottom:20px"></div>
+    <div class="field"><label>Heure du rappel</label><input type="time" id="reminder-time-input" value="09:00" /></div>
+    <div style="display:flex; gap:10px; margin-top:8px">
+      <button class="btn-primary" style="flex:1" onclick="saveReminder()">Enregistrer le rappel</button>
+      <button class="btn-secondary" style="flex:1" onclick="closeReminderModal()">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- Extraction de texte : PDF (pdf.js) et Word .docx (mammoth.js) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -913,6 +933,7 @@ let allHistoriqueItems = [];
 let lastBatchPosts = [];
 let editorModified = false;
 let selectedLang = null;
+let currentReminderData = {};
 
 /* ---------- Utilitaires UI ---------- */
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
@@ -1024,6 +1045,7 @@ function renderDashboard(){
   document.getElementById('dash-empty').style.display=hasSel?'none':'flex';
   document.getElementById('dash-brand').style.display=hasSel?'block':'none';
   if(hasSel) renderBrand();
+  loadTodayReminders();
 }
 function selectBrand(id){ state.selectedBrand=state.brands.find(b=>b.id===id); state.lastGen=null; state.calendarItems=[]; state.calMonth=null; allHistoriqueItems=[]; renderDashboard(); }
 
@@ -2336,6 +2358,69 @@ function exportCalendarPDF(){
   doc.save('calendrier-'+slug+'-'+new Date().toISOString().slice(0,10)+'.pdf');
 }
 
+/* ---- Rappels de publication (table Supabase : publication_reminders) ---- */
+function openReminderModal(date,reseau,sujet){
+  if(!state.selectedBrand){ showToast('Sélectionnez une marque.','err'); return; }
+  currentReminderData={date,reseau,sujet};
+  const info=document.getElementById('reminder-modal-info');
+  if(info) info.textContent=`${reseau} · ${sujet} · ${date}`;
+  const ov=document.getElementById('reminder-modal-overlay'); if(ov) ov.style.display='flex';
+}
+function closeReminderModal(){
+  const ov=document.getElementById('reminder-modal-overlay'); if(ov) ov.style.display='none';
+  currentReminderData={};
+}
+async function saveReminder(){
+  const heure=document.getElementById('reminder-time-input').value;
+  if(!heure){ showToast('Choisissez une heure.','err'); return; }
+  const {date,reseau,sujet}=currentReminderData;
+  if(!date || !state.user || !state.selectedBrand){ return; }
+  try{
+    const { error }=await db.from('publication_reminders').insert({
+      user_id:state.user.id, brand_id:state.selectedBrand.id, sujet, reseau, rappel_date:date, rappel_heure:heure, statut:'planifie'
+    });
+    if(error) throw error;
+    closeReminderModal();
+    showToast('Rappel enregistré pour le '+date+' à '+heure+' ✓','ok');
+    loadTodayReminders(); loadTodayRemindersInCalendar();
+  }catch(e){ showToast('Rappel non enregistré — avez-vous créé la table « publication_reminders » dans Supabase ?','err'); }
+}
+async function loadTodayReminders(){
+  const badge=document.getElementById('today-reminder-badge'); if(!badge) return;
+  if(!state.user){ badge.style.display='none'; return; }
+  const today=new Date().toISOString().slice(0,10);
+  try{
+    const { data, error }=await db.from('publication_reminders').select('id').eq('user_id',state.user.id).eq('rappel_date',today).eq('statut','planifie');
+    if(error) throw error;
+    if(data && data.length){ badge.textContent=data.length; badge.style.display='inline-block'; }
+    else badge.style.display='none';
+  }catch(e){ badge.style.display='none'; }
+}
+async function loadTodayRemindersInCalendar(){
+  const section=document.getElementById('today-reminders-section');
+  const list=document.getElementById('today-reminders-list');
+  if(!section || !list || !state.user) return;
+  const today=new Date().toISOString().slice(0,10);
+  let data=[];
+  try{
+    const r=await db.from('publication_reminders').select('*').eq('user_id',state.user.id).eq('rappel_date',today).eq('statut','planifie').order('rappel_heure',{ascending:true});
+    if(r.error) throw r.error; data=r.data||[];
+  }catch(e){ section.style.display='none'; return; }
+  if(!data.length){ section.style.display='none'; return; }
+  const e=escapeHtml;
+  section.style.display='block';
+  list.innerHTML=data.map(r=>`<div style="display:flex; align-items:center; gap:12px; font-size:13px">
+    <span style="color:#7A3020; font-weight:700; flex-shrink:0">${e((r.rappel_heure||'').slice(0,5))}</span>
+    <span class="small" style="flex-shrink:0">${e(r.reseau||'')}</span>
+    <span style="color:var(--text-main); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${e(r.sujet||'')}</span>
+    <button class="btn-secondary btn-sm" style="margin-left:auto; flex-shrink:0" onclick="markReminderDone('${e(r.id)}')">✓ Publié</button>
+  </div>`).join('');
+}
+async function markReminderDone(id){
+  try{ await db.from('publication_reminders').update({statut:'publie'}).eq('id',id); }catch(e){}
+  loadTodayRemindersInCalendar(); loadTodayReminders();
+}
+
 function renderCalendarGrid(){
   const box=document.getElementById('cal-agenda'); if(!box) return;
   const expBtn=document.getElementById('export-pdf-btn'); if(expBtn) expBtn.style.display=(state.calendarItems&&state.calendarItems.length)?'inline-block':'none';
@@ -2359,7 +2444,7 @@ function renderCalendarGrid(){
     const items=byDate[dateStr]||[];
     html+=`<div class="cal-day${dateStr===todayStr?' today':''}"><div class="cal-daynum">${day}</div>`;
     items.forEach((it,idx)=>{
-      html+=`<div class="cal-event" data-date="${dateStr}" data-idx="${idx}" title="${escapeHtml(it.sujet)} — ${escapeHtml(it.angle||'')}">${NET_ICON[it.reseau]||'•'} ${escapeHtml(it.sujet)}</div>`;
+      html+=`<div class="cal-event" data-date="${dateStr}" data-idx="${idx}" title="${escapeHtml(it.sujet)} — ${escapeHtml(it.angle||'')}"><span class="cal-ev-text">${NET_ICON[it.reseau]||'•'} ${escapeHtml(it.sujet)}</span><button type="button" class="cal-ev-bell" data-date="${dateStr}" data-idx="${idx}" title="Me rappeler">🔔</button></div>`;
     });
     html+='</div>';
   }
@@ -2371,6 +2456,14 @@ function renderCalendarGrid(){
       if(it) prefillGenerate(it.sujet, it.reseau);
     };
   });
+  box.querySelectorAll('.cal-ev-bell').forEach(b=>{
+    b.onclick=(e)=>{
+      e.stopPropagation();
+      const it=(byDate[b.getAttribute('data-date')]||[])[+b.getAttribute('data-idx')];
+      if(it) openReminderModal(b.getAttribute('data-date'), it.reseau, it.sujet);
+    };
+  });
+  loadTodayRemindersInCalendar();
 }
 function prefillGenerate(sujet,reseau){
   const channel=RESEAU_TO_CHANNEL[reseau]||'LinkedIn';

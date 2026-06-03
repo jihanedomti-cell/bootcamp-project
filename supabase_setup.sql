@@ -179,5 +179,28 @@ create policy "settings_update_admin" on public.app_settings for update
   to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- =====================================================================
+--  RAPPELS DE PUBLICATION (fonctionnalité "Me rappeler" du calendrier)
+-- =====================================================================
+create table if not exists public.publication_reminders (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid references auth.users(id) on delete cascade,
+  brand_id     uuid references public.brands(id) on delete cascade,
+  sujet        text,
+  reseau       text,
+  rappel_date  date,
+  rappel_heure time,
+  contenu      text,
+  statut       text default 'planifie',
+  created_at   timestamptz default now()
+);
+
+alter table public.publication_reminders enable row level security;
+
+-- Chaque utilisateur ne gère que ses propres rappels
+drop policy if exists "reminders_all_own" on public.publication_reminders;
+create policy "reminders_all_own" on public.publication_reminders for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- =====================================================================
 --  Terminé. Vous devriez voir "Success. No rows returned".
 -- =====================================================================
