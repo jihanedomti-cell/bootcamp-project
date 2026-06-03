@@ -504,6 +504,35 @@
       <button class="btn-secondary btn-sm" onclick="doLogout()">Déconnexion</button>
     </div>
   </div>
+
+  <!-- Onboarding guidé en 3 étapes -->
+  <div id="onboarding-bar" style="display:none; background:var(--white); border-bottom:1.5px solid var(--border); padding:16px 32px">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px">
+      <div>
+        <div style="font-size:14px; font-weight:600; color:var(--text-main)">🎯 Configurez Brief to Brand en 3 étapes</div>
+        <div class="small" id="onboarding-subtitle" style="margin-top:2px">Complétez ces étapes pour générer votre premier contenu.</div>
+      </div>
+      <button onclick="dismissOnboarding()" style="background:none; border:none; cursor:pointer; font-size:18px; color:var(--text-muted); padding:4px 8px">✕</button>
+    </div>
+    <div style="height:5px; background:var(--border); border-radius:3px; margin-bottom:16px">
+      <div id="onboarding-progress" style="height:100%; background:var(--green); border-radius:3px; transition:width 0.4s ease; width:0%"></div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px" id="onboarding-steps">
+      <div id="onboarding-step-1" class="onboarding-step" onclick="goToStep(1)" style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; background:var(--bg-section); cursor:pointer; transition:all 0.2s">
+        <div id="onboarding-icon-1" style="width:32px; height:32px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; flex-shrink:0">1</div>
+        <div><div style="font-size:13px; font-weight:600; color:var(--text-main)">Créer une marque</div><div class="small">Donnez un nom et un secteur</div></div>
+      </div>
+      <div id="onboarding-step-2" class="onboarding-step" onclick="goToStep(2)" style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; background:var(--bg-section); cursor:pointer; opacity:0.5; transition:all 0.2s">
+        <div id="onboarding-icon-2" style="width:32px; height:32px; border-radius:50%; background:var(--border); color:var(--text-muted); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; flex-shrink:0">2</div>
+        <div><div style="font-size:13px; font-weight:600; color:var(--text-main)">Ajouter des documents</div><div class="small">Nourrissez la Brand Memory</div></div>
+      </div>
+      <div id="onboarding-step-3" class="onboarding-step" onclick="goToStep(3)" style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; background:var(--bg-section); cursor:pointer; opacity:0.5; transition:all 0.2s">
+        <div id="onboarding-icon-3" style="width:32px; height:32px; border-radius:50%; background:var(--border); color:var(--text-muted); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; flex-shrink:0">3</div>
+        <div><div style="font-size:13px; font-weight:600; color:var(--text-main)">Générer un post</div><div class="small">Votre premier contenu IA</div></div>
+      </div>
+    </div>
+  </div>
+
   <div class="dash-body">
     <aside class="sidebar">
       <div class="side-label">Marque active</div>
@@ -959,6 +988,93 @@ function showDashboard(){
   // Sélectionne automatiquement la marque la plus récente → on voit le Calendrier d'emblée
   if(!state.selectedBrand && state.brands.length){ state.selectedBrand=state.brands[0]; }
   renderDashboard();
+  initOnboarding();
+}
+
+/* ---- Onboarding guidé en 3 étapes (persisté en localStorage) ---- */
+let onboardingState = { step1:false, step2:false, step3:false, dismissed:false };
+function onboardingKey(){ return 'btb_onboarding_'+((state.user&&state.user.id)||'anon'); }
+function initOnboarding(){
+  const bar=document.getElementById('onboarding-bar'); if(!bar) return;
+  try{ const saved=localStorage.getItem(onboardingKey()); if(saved) onboardingState=JSON.parse(saved); }catch(e){}
+  // Si l'utilisateur a déjà des marques, on considère les 2 premières étapes faites
+  if(state.brands && state.brands.length){ onboardingState.step1=true; onboardingState.step2=true; }
+  if(onboardingState.dismissed){ bar.style.display='none'; return; }
+  if(onboardingState.step1 && onboardingState.step2 && onboardingState.step3){ bar.style.display='none'; return; }
+  bar.style.display='block';
+  updateOnboardingUI();
+}
+function saveOnboardingState(){ try{ localStorage.setItem(onboardingKey(), JSON.stringify(onboardingState)); }catch(e){} }
+function completeOnboardingStep(step){
+  if(onboardingState['step'+step]) return;
+  onboardingState['step'+step]=true;
+  saveOnboardingState();
+  const bar=document.getElementById('onboarding-bar');
+  if(bar && bar.style.display!=='none') updateOnboardingUI();
+  if(onboardingState.step1 && onboardingState.step2 && onboardingState.step3 && !onboardingState.dismissed){
+    if(bar && bar.style.display==='none'){ bar.style.display='block'; }
+    setTimeout(()=>showOnboardingComplete(),400);
+  }
+}
+function updateOnboardingUI(){
+  let completed=0;
+  [1,2,3].forEach(step=>{
+    const stepEl=document.getElementById('onboarding-step-'+step);
+    const iconEl=document.getElementById('onboarding-icon-'+step);
+    if(!stepEl||!iconEl) return;
+    if(onboardingState['step'+step]){
+      completed++;
+      stepEl.style.opacity='1'; stepEl.style.borderColor='var(--green)';
+      iconEl.textContent='✓'; iconEl.style.background='var(--green)'; iconEl.style.color='#fff';
+    }
+  });
+  // Met en évidence la prochaine étape à faire
+  [1,2,3].forEach(step=>{
+    const stepEl=document.getElementById('onboarding-step-'+step);
+    const iconEl=document.getElementById('onboarding-icon-'+step);
+    if(!stepEl||!iconEl||onboardingState['step'+step]) return;
+    const done=[1,2,3].filter(s=>onboardingState['step'+s]).length;
+    if(step===done+1){ stepEl.style.opacity='1'; stepEl.style.borderColor='var(--peach)'; iconEl.style.background='var(--peach)'; iconEl.style.color='#fff'; }
+  });
+  const progress=(completed/3)*100;
+  const pb=document.getElementById('onboarding-progress'); if(pb) pb.style.width=progress+'%';
+  const subtitles=[
+    'Complétez ces étapes pour générer votre premier contenu.',
+    'Super ! Ajoutez maintenant des documents pour nourrir la Brand Memory.',
+    'Presque ! Générez votre premier post pour terminer.'
+  ];
+  const sub=document.getElementById('onboarding-subtitle'); if(sub && subtitles[completed]) sub.textContent=subtitles[completed];
+}
+function showOnboardingComplete(){
+  const bar=document.getElementById('onboarding-bar'); if(!bar) return;
+  bar.innerHTML=`<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px">
+    <div style="display:flex; align-items:center; gap:14px">
+      <div style="font-size:28px">🎉</div>
+      <div>
+        <div style="font-size:15px; font-weight:700; color:var(--text-main)">Vous êtes prêt ! Brief to Brand est configuré.</div>
+        <div class="small" style="margin-top:2px">Votre Brand Memory est active — générez du contenu en quelques secondes.</div>
+      </div>
+    </div>
+    <button class="btn-primary btn-sm" onclick="dismissOnboarding()">Commencer ✦</button>
+  </div>`;
+  setTimeout(()=>dismissOnboarding(),5000);
+}
+function dismissOnboarding(){
+  onboardingState.dismissed=true; saveOnboardingState();
+  const bar=document.getElementById('onboarding-bar'); if(!bar) return;
+  bar.style.transition='opacity 0.3s'; bar.style.opacity='0';
+  setTimeout(()=>{ bar.style.display='none'; },350);
+}
+function goToStep(step){
+  if(step===1){ openBrandEditor(); return; }
+  if(!state.selectedBrand && state.brands.length){ selectBrand(state.brands[0].id); }
+  if(step===2){
+    if(state.selectedBrand) navTo('memory', document.getElementById('nav-memory'));
+    else openBrandEditor();
+  } else if(step===3){
+    if(state.selectedBrand){ const el=document.querySelector('#dash-side-nav [data-channel="LinkedIn"]'); navChannel('LinkedIn', el); }
+    else showToast('Créez d\'abord une marque.','err');
+  }
 }
 
 /* =========================================================================
@@ -1558,6 +1674,7 @@ async function memReanalyze(){
   state.selectedBrand.brand_memory=mem;
   state.memFiles=[];
   renderMemory();
+  completeOnboardingStep(2);
   showToast('Brand Memory mise à jour avec les nouveaux documents ✓','ok');
 }
 
@@ -1602,6 +1719,7 @@ async function generateVariants(sujet, fmt){
   renderVariants();
   updateCoherenceScore();
   loadHistorique();
+  if(!onboardingState.step3) completeOnboardingStep(3);
   showToast('3 variantes générées ✓','ok');
 }
 // Construit une variante adaptée à l'approche, au format et au réseau (mode démo).
@@ -2738,6 +2856,7 @@ async function beAnalyzeFiles(){
   document.getElementById('be-interdits').value=(mem.mots_interdits||[]).join(', ');
   document.getElementById('be-cible').value=mem.cible;
   document.getElementById('be-valeurs').value=(mem.valeurs||[]).join(', ');
+  completeOnboardingStep(2);
   beShowStep(3);
 }
 async function beSave(){
@@ -2758,6 +2877,7 @@ async function beSave(){
   if(error){ showToast('Erreur : '+error.message,'err'); return; }
   state.brands.unshift(data);
   state.selectedBrand=data;   // sélection automatique
+  completeOnboardingStep(1);
   showDashboard();
   showToast('Marque créée ✓','ok');
 }
