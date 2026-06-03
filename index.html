@@ -580,6 +580,35 @@
           <div class="field"><label>Sujet du contenu</label><textarea id="gen-sujet" rows="3" placeholder="Décrivez votre sujet en quelques mots — ex : Lancement de notre nouvelle offre d'accompagnement, pour qui, ce qu'elle apporte…"></textarea></div>
           <button class="btn-primary" onclick="doGenerate()">Générer</button>
           <div id="gen-results"></div>
+
+          <!-- Score de cohérence Brand Memory (calculé en local, mode démo) -->
+          <div id="coherence-score-block" style="display:none; margin-top:20px;">
+            <div style="display:flex; align-items:center; gap:16px; padding:16px 20px; border:1.5px solid var(--border); border-radius:12px; background:var(--white); margin-bottom:12px;">
+              <div style="position:relative; width:64px; height:64px; flex-shrink:0;">
+                <svg width="64" height="64" viewBox="0 0 64 64">
+                  <circle cx="32" cy="32" r="26" fill="none" stroke="var(--border)" stroke-width="6"/>
+                  <circle id="score-circle" cx="32" cy="32" r="26" fill="none" stroke="var(--green)" stroke-width="6" stroke-linecap="round" stroke-dasharray="163" stroke-dashoffset="163" transform="rotate(-90 32 32)" style="transition:stroke-dashoffset 1s ease;"/>
+                </svg>
+                <div id="score-number" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:15px; font-weight:700; color:var(--text-main);">0%</div>
+              </div>
+              <div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.8px;">Cohérence Brand Memory</div>
+                <div id="score-niveau" style="font-size:18px; font-weight:700; color:var(--text-main);"></div>
+                <div id="score-resume" style="font-size:13px; color:var(--text-muted); margin-top:4px;"></div>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div style="padding:14px 16px; border:1.5px solid var(--border); border-radius:12px; background:var(--white);">
+                <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--green); margin-bottom:10px;">✦ Points forts</div>
+                <ul id="score-forts" style="list-style:none; padding:0; margin:0; font-size:13px; color:var(--text-main); display:flex; flex-direction:column; gap:6px;"></ul>
+              </div>
+              <div style="padding:14px 16px; border:1.5px solid var(--border); border-radius:12px; background:var(--white);">
+                <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:10px;">◦ À améliorer</div>
+                <ul id="score-amelio" style="list-style:none; padding:0; margin:0; font-size:13px; color:var(--text-main); display:flex; flex-direction:column; gap:6px;"></ul>
+              </div>
+            </div>
+          </div>
+
           <button id="gen-decline" class="btn-secondary btn-sm" style="display:none;margin-top:14px" onclick="declineFormats()">Décliner en d'autres formats</button>
         </div>
 
@@ -936,6 +965,7 @@ function renderChannelView(){
   state.selectedFormat=ch.formats[0];
   document.getElementById('gen-sujet').value='';
   document.getElementById('gen-results').innerHTML='';
+  const sb=document.getElementById('coherence-score-block'); if(sb) sb.style.display='none';
   document.getElementById('gen-decline').style.display='none';
   state.lastGen=null;
   state.currentVariants=[]; state.selectedVariantIdx=0; state.genRowId=null;
@@ -1168,6 +1198,7 @@ async function generateVariants(sujet, fmt){
   }
   loader(false);
   renderVariants();
+  updateCoherenceScore();
   showToast('3 variantes générées ✓','ok');
 }
 // Construit une variante adaptée à l'approche, au format et au réseau (mode démo).
@@ -1234,6 +1265,83 @@ async function callGenerateVariants(brand, sujet, format){
     return { titre:a.titre, accroche, contenu };
   }) };
 }
+/* ---- Score de cohérence Brand Memory ----
+   En mode démo : score calculé localement à partir de la Brand Memory et du contenu.
+   En réel : passera par une Edge Function sécurisée (JAMAIS la clé API dans le navigateur). */
+function computeCoherenceScore(contenu, m){
+  m=m||{}; const text=String(contenu||'').toLowerCase();
+  const kws=(m.mots_cles||[]).filter(Boolean);
+  const bad=(m.mots_interdits||[]).filter(Boolean);
+  const vals=(m.valeurs||[]).filter(Boolean);
+  const forts=[], amelio=[];
+  let score=60;
+  // Mots-clés présents
+  if(kws.length){
+    const hit=kws.filter(k=>text.includes(String(k).toLowerCase()));
+    score+=Math.round((hit.length/kws.length)*22);
+    if(hit.length) forts.push('Mots-clés bien intégrés : '+hit.slice(0,3).join(', '));
+    const miss=kws.filter(k=>!text.includes(String(k).toLowerCase()));
+    if(miss.length) amelio.push('Intégrer aussi : '+miss.slice(0,2).join(', '));
+  } else { score+=10; }
+  // Mots à éviter
+  const badHit=bad.filter(b=>text.includes(String(b).toLowerCase()));
+  if(badHit.length){ score-=badHit.length*12; amelio.push('Éviter le(s) mot(s) à bannir : '+badHit.slice(0,2).join(', ')); }
+  else { score+=8; forts.push('Aucun mot à éviter détecté'); }
+  // Valeurs évoquées
+  const valHit=vals.filter(v=>text.includes(String(v).toLowerCase()));
+  if(valHit.length){ score+=6; forts.push('Valeurs reflétées : '+valHit.slice(0,2).join(', ')); }
+  // Signaux légers
+  if(/[?]/.test(contenu)) score+=3;
+  if(text.length>120) score+=3;
+  score=Math.max(0,Math.min(100,score));
+  const niveau = score>=86?'Excellent':score>=71?'Bon':score>=51?'Correct':'Faible';
+  const resume = score>=86?'Ce contenu reflète très bien l’identité de la marque.'
+    : score>=71?'Bon respect de la voix de marque, quelques ajustements possibles.'
+    : score>=51?'Cohérence correcte mais perfectible sur plusieurs points.'
+    : 'Le contenu s’éloigne de l’identité de la marque — à retravailler.';
+  if(forts.length<2) forts.push('Le ton général reste fidèle à la marque');
+  if(forts.length<2) forts.push('Structure claire et lisible');
+  let pa = score>90 ? [] : amelio;
+  if(score<=90 && !pa.length) pa=['Renforcer la présence des mots-clés de la marque'];
+  return { score, niveau, points_forts:forts.slice(0,3), points_amelioration:pa.slice(0,2), resume };
+}
+async function callCoherenceScore(contenu, brandMemory){
+  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function sécurisée (la clé reste côté serveur, jamais ici) */ }
+  await wait(500);
+  return computeCoherenceScore(contenu, brandMemory);
+}
+function displayCoherenceScore(scoreData){
+  const block=document.getElementById('coherence-score-block'); if(!block) return;
+  const circle=document.getElementById('score-circle');
+  const numberEl=document.getElementById('score-number');
+  const niveauEl=document.getElementById('score-niveau');
+  const resumeEl=document.getElementById('score-resume');
+  const fortsEl=document.getElementById('score-forts');
+  const amelioEl=document.getElementById('score-amelio');
+  const score=Math.max(0,Math.min(100,scoreData.score||0));
+  let couleur;
+  if(score>=86) couleur='#2D7A4F'; else if(score>=71) couleur='#E8957A'; else if(score>=51) couleur='#F59E0B'; else couleur='#F87171';
+  const offset=163-(163*score/100);
+  circle.style.stroke=couleur; circle.style.strokeDashoffset='163';
+  setTimeout(()=>{ circle.style.strokeDashoffset=offset; },100);
+  let current=0;
+  const interval=setInterval(()=>{ current+=2; if(current>=score){ current=score; clearInterval(interval); } numberEl.textContent=current+'%'; },20);
+  niveauEl.textContent=scoreData.niveau||''; niveauEl.style.color=couleur;
+  resumeEl.textContent=scoreData.resume||'';
+  fortsEl.innerHTML=(scoreData.points_forts||[]).map(p=>`<li style="display:flex;gap:8px;align-items:flex-start;"><span style="color:#2D7A4F;flex-shrink:0;">✓</span><span>${escapeHtml(p)}</span></li>`).join('');
+  const pa=scoreData.points_amelioration||[];
+  amelioEl.innerHTML = pa.length
+    ? pa.map(p=>`<li style="display:flex;gap:8px;align-items:flex-start;"><span style="opacity:0.5;flex-shrink:0;">→</span><span>${escapeHtml(p)}</span></li>`).join('')
+    : '<li style="color:var(--text-muted)">Aucun point à améliorer ✦</li>';
+  block.style.display='block';
+}
+async function updateCoherenceScore(){
+  const block=document.getElementById('coherence-score-block');
+  const v=state.currentVariants[state.selectedVariantIdx];
+  if(!v || !state.selectedBrand){ if(block) block.style.display='none'; return; }
+  const data=await callCoherenceScore(v.contenu, state.selectedBrand.brand_memory||{});
+  displayCoherenceScore(data);
+}
 function renderVariants(){
   const box=document.getElementById('gen-results');
   const vs=state.currentVariants||[];
@@ -1269,6 +1377,7 @@ function selectVariant(i, save){
   state.selectedVariantIdx=i;
   document.querySelectorAll('#gen-results .variant-card').forEach((c,idx)=>c.classList.toggle('active', idx===i));
   renderPreview();
+  updateCoherenceScore();
   if(save) saveSelectedVariant();
 }
 function copySelectedVariant(){
