@@ -252,7 +252,7 @@
   .animate-in { animation: fadeInUp 0.32s ease forwards; }
 
   .mem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-  @media (max-width: 700px){ .mem-grid { grid-template-columns: 1fr; } .sidebar{ width: 210px; } #brand-stats-block { grid-template-columns: 1fr 1fr !important; } }
+  @media (max-width: 700px){ .mem-grid { grid-template-columns: 1fr; } .sidebar{ width: 210px; } }
   .mem-item h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--green); margin-bottom: 10px; font-weight: 600; }
   .mem-item > div:last-child { color: var(--text-main); }
 
@@ -596,30 +596,6 @@
 
         <!-- TAB: Brand Memory -->
         <div id="panel-memory" class="tab-panel active">
-
-          <!-- Mini dashboard de statistiques -->
-          <div id="brand-stats-block" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:24px">
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:16px 18px">
-              <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:8px">Contenus générés</div>
-              <div id="stat-total" style="font-size:28px; font-weight:700; color:var(--text-main); line-height:1">—</div>
-              <div class="small" style="margin-top:4px">au total</div>
-            </div>
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:16px 18px">
-              <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:8px">Canal favori</div>
-              <div id="stat-canal" style="font-size:20px; font-weight:700; color:var(--text-main); line-height:1.2">—</div>
-              <div class="small" style="margin-top:4px" id="stat-canal-count"></div>
-            </div>
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:16px 18px">
-              <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:8px">Cohérence moyenne</div>
-              <div id="stat-score" style="font-size:28px; font-weight:700; color:var(--green); line-height:1">—</div>
-              <div class="small" style="margin-top:4px">sur les derniers posts</div>
-            </div>
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:16px 18px">
-              <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:8px">Dernière génération</div>
-              <div id="stat-last-date" style="font-size:16px; font-weight:700; color:var(--text-main); line-height:1.3">—</div>
-              <div class="small" style="margin-top:4px" id="stat-last-format"></div>
-            </div>
-          </div>
 
           <div class="mem-grid" id="mem-display"></div>
           <div class="row" style="margin-top:20px">
@@ -1281,51 +1257,6 @@ function renderMemory(){
   state.memFiles=[];
   memRenderFileList();
   setupMemDropzone();
-  loadBrandStats();
-}
-/* ---- Mini dashboard de statistiques (vue Brand Memory) ---- */
-async function loadBrandStats(){
-  if(!state.selectedBrand) return;
-  const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.textContent=val; };
-  let data=[];
-  try{
-    const r=await db.from('generated_contents').select('*').eq('brand_id',state.selectedBrand.id).order('created_at',{ascending:false});
-    if(r.error) throw r.error;
-    data=r.data||[];
-  }catch(e){ data=[]; }
-  if(!data.length){
-    set('stat-total','0'); set('stat-canal','—'); set('stat-canal-count','');
-    set('stat-score','—'); set('stat-last-date','Aucune'); set('stat-last-format','');
-    return;
-  }
-  // 1) Total
-  set('stat-total', String(data.length));
-  // 2) Canal favori (le format est stocké sous la forme "Canal — format")
-  const canalCount={};
-  data.forEach(it=>{ const c=String(it.format||'Autre').split('—')[0].split(' - ')[0].trim()||'Autre'; canalCount[c]=(canalCount[c]||0)+1; });
-  const top=Object.entries(canalCount).sort((a,b)=>b[1]-a[1])[0];
-  if(top){ set('stat-canal', top[0]); set('stat-canal-count', top[1]+' post'+(top[1]>1?'s':'')); }
-  // 3) Cohérence moyenne — calculée en local sur les 12 contenus les plus récents
-  const m=state.selectedBrand.brand_memory||{};
-  const recents=data.slice(0,12).filter(d=>d.contenu);
-  if(recents.length){
-    const moy=Math.round(recents.reduce((s,d)=>s+computeCoherenceScore(d.contenu,m).score,0)/recents.length);
-    set('stat-score', moy+'%');
-  } else { set('stat-score','—'); }
-  // 4) Dernière génération (relatif)
-  const last=data[0];
-  const lastDate=new Date(last.created_at), now=new Date();
-  const diffMs=now-lastDate, mins=Math.floor(diffMs/60000), hours=Math.floor(diffMs/3600000), days=Math.floor(diffMs/86400000);
-  let dateStr;
-  if(isNaN(lastDate)) dateStr='—';
-  else if(mins<1) dateStr='À l\'instant';
-  else if(mins<60) dateStr='Il y a '+mins+' min';
-  else if(hours<24) dateStr='Il y a '+hours+' h';
-  else if(days===1) dateStr='Hier';
-  else if(days<7) dateStr='Il y a '+days+' jours';
-  else dateStr=lastDate.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
-  set('stat-last-date', dateStr);
-  set('stat-last-format', last.format||'');
 }
 
 /* ---- Analyse des posts (analytics) ---- */
@@ -1502,7 +1433,6 @@ function navTo(name,el){
   if(name==='tone') renderToneChecker();
   if(name==='historique') loadHistorique();
   if(name==='batch') renderBatch();
-  if(name==='memory') loadBrandStats();
   if(name==='analytics') loadAnalytics();
 }
 function navChannel(channel,el){
