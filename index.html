@@ -463,6 +463,15 @@
   #view-dashboard .admin-table th { background:#FFF8E0; color:#8B6A00; }
   /* Éditeur de marque : zones de dépôt douces */
   #view-dashboard #mem-dropzone, #view-brand-editor .dropzone { border:2px dashed var(--dash-yellow); background:#FFF8E0; border-radius: var(--dash-radius); }
+  /* Navigation principale dans le header */
+  #view-dashboard .header-nav { display:flex; gap:6px; background:var(--dash-card); border-radius:50px; padding:5px; box-shadow:0 2px 10px rgba(0,0,0,0.07); }
+  #view-dashboard .header-nav-item { padding:7px 16px; border-radius:50px; font-size:13px; font-weight:600; color:var(--dash-muted); cursor:pointer; transition:all 0.2s; white-space:nowrap; display:flex; align-items:center; }
+  #view-dashboard .header-nav-item:hover { color:var(--dash-text); }
+  #view-dashboard .header-nav-item.active { background:linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); color:#fff; box-shadow:0 4px 12px rgba(245,196,0,0.4); }
+  /* Canaux dans la sidebar : masqués sauf en mode Générer */
+  #view-dashboard .sidebar-channels { display:none; }
+  #view-dashboard .sidebar-channels.visible { display:block; }
+  @media (max-width: 860px){ #view-dashboard .header-nav-item { padding:7px 10px; font-size:12px; } }
 </style>
 </head>
 <body>
@@ -616,8 +625,14 @@
 <div id="view-dashboard" class="view">
   <div class="dash-header">
     <div class="logo"><span class="dot"></span> Brief to Brand</div>
+    <div class="header-nav">
+      <div class="header-nav-item" id="hnav-marque" onclick="showSection('brand-memory')">🧠 Marque</div>
+      <div class="header-nav-item" id="hnav-generer" onclick="showSection('generer')">✏️ Générer</div>
+      <div class="header-nav-item" id="hnav-calendrier" onclick="showSection('calendar')">📅 Calendrier<span id="today-reminder-badge" style="display:none; font-size:11px; background:#C0392B; color:#fff; border-radius:10px; padding:1px 7px; font-weight:600; margin-left:6px"></span></div>
+      <div class="header-nav-item" id="hnav-analyse" onclick="showSection('analytics')">📊 Analyse</div>
+    </div>
     <div class="row">
-      <span class="small">Bonjour, <strong id="dash-prenom" style="color:var(--text)"></strong></span>
+      <span class="small">Bonjour, <strong id="dash-prenom" style="color:var(--text)"></strong> 👋</span>
       <button class="btn-secondary btn-sm" onclick="doLogout()">Déconnexion</button>
     </div>
   </div>
@@ -658,23 +673,21 @@
       <div class="side-sep"></div>
 
       <nav id="dash-side-nav">
-        <a class="brand-item" id="nav-memory" onclick="navTo('memory',this)"><span>◈</span><span>Brand Memory</span></a>
-        <a class="brand-item" id="nav-analytics" onclick="navTo('analytics',this)"><span>📊</span><span>Analyse des posts</span></a>
+        <!-- Canaux : visibles uniquement en mode "Générer" -->
+        <div class="sidebar-channels">
+          <div class="side-label">Générer</div>
+          <a class="brand-item" data-channel="LinkedIn"  onclick="navChannel('LinkedIn',this)"><span>in</span><span>LinkedIn</span></a>
+          <a class="brand-item" data-channel="Instagram" onclick="navChannel('Instagram',this)"><span>◎</span><span>Instagram</span></a>
+          <a class="brand-item" data-channel="Email"     onclick="navChannel('Email',this)"><span>✉</span><span>Email</span></a>
+          <a class="brand-item" data-channel="X"         onclick="navChannel('X',this)"><span>𝕏</span><span>X / Twitter</span></a>
+          <a class="brand-item" data-channel="Facebook"  onclick="navChannel('Facebook',this)"><span>f</span><span>Facebook</span></a>
+          <a class="brand-item" id="nav-batch" onclick="navTo('batch',this)"><span>⚡</span><span>Mode Batch</span><span style="margin-left:auto; font-size:10px; background:var(--green); color:#fff; border-radius:4px; padding:1px 6px; font-weight:600">NEW</span></a>
+        </div>
 
-        <div class="side-label">Générer du contenu</div>
-        <a class="brand-item" data-channel="LinkedIn"  onclick="navChannel('LinkedIn',this)"><span>in</span><span>LinkedIn</span></a>
-        <a class="brand-item" data-channel="Instagram" onclick="navChannel('Instagram',this)"><span>◎</span><span>Instagram</span></a>
-        <a class="brand-item" data-channel="Email"     onclick="navChannel('Email',this)"><span>✉</span><span>Email</span></a>
-        <a class="brand-item" data-channel="X"         onclick="navChannel('X',this)"><span>𝕏</span><span>X / Twitter</span></a>
-        <a class="brand-item" data-channel="Facebook"  onclick="navChannel('Facebook',this)"><span>f</span><span>Facebook</span></a>
-        <a class="brand-item" id="nav-batch" onclick="navTo('batch',this)"><span>⚡</span><span>Mode Batch</span><span style="margin-left:auto; font-size:10px; background:var(--green); color:#fff; border-radius:4px; padding:1px 6px; font-weight:600">NEW</span></a>
-
-        <div class="side-label">Vérifier</div>
+        <div class="side-sep"></div>
+        <div class="side-label">Outils</div>
         <a class="brand-item" id="nav-tone" onclick="navTo('tone',this)"><span>◎</span><span>Tone Checker</span></a>
         <a class="brand-item" id="nav-historique" onclick="navTo('historique',this)"><span>◷</span><span>Historique</span><span id="historique-count" style="display:none; margin-left:auto; font-size:11px; background:var(--green); color:#fff; border-radius:10px; padding:1px 7px; font-weight:600;"></span></a>
-
-        <div class="side-label">Planning</div>
-        <a class="brand-item" id="nav-calendar" onclick="navTo('calendar',this)"><span>▦</span><span>Calendrier éditorial</span><span id="today-reminder-badge" style="display:none; margin-left:auto; font-size:11px; background:#C0392B; color:#fff; border-radius:10px; padding:1px 7px; font-weight:600"></span></a>
 
         <div id="admin-nav-wrap" style="display:none">
           <div class="side-label">Admin</div>
@@ -1343,8 +1356,8 @@ function renderBrand(){
   document.getElementById('cur-color').style.background=b.couleur||'#7C5CFC';
   document.getElementById('cur-sector').textContent=b.secteur||'';
   renderMemory();
-  showPanel('calendar');
-  setNavActive(document.getElementById('nav-calendar'));
+  showPanel('memory');
+  setHeaderNav('marque');
   renderCalendarGrid();
   loadHistorique();
 }
@@ -1551,6 +1564,9 @@ function navTo(name,el){
   if(name==='historique') loadHistorique();
   if(name==='batch') renderBatch();
   if(name==='analytics') loadAnalytics();
+  // Synchronise les pills du header
+  const hmap={ memory:'marque', calendar:'calendrier', analytics:'analyse' };
+  if(hmap[name]) setHeaderNav(hmap[name]);
 }
 function navChannel(channel,el){
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
@@ -1559,6 +1575,26 @@ function navChannel(channel,el){
   state.currentChannel=channel;
   showPanel('generate');
   renderChannelView();
+  setHeaderNav('generer');
+}
+/* ---- Navigation principale (pills du header) ---- */
+function setHeaderNav(section){
+  document.querySelectorAll('.header-nav-item').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById('hnav-'+section); if(el) el.classList.add('active');
+  const ch=document.querySelector('.sidebar-channels');
+  if(ch){ if(section==='generer') ch.classList.add('visible'); else ch.classList.remove('visible'); }
+}
+function showSection(section){
+  if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
+  if(section==='brand-memory'){ navTo('memory', null); }
+  else if(section==='calendar'){ navTo('calendar', null); }
+  else if(section==='analytics'){ navTo('analytics', null); }
+  else if(section==='generer'){
+    setHeaderNav('generer');
+    const ch=state.currentChannel||'LinkedIn';
+    const el=document.querySelector(`#dash-side-nav [data-channel="${ch}"]`);
+    navChannel(ch, el);
+  }
 }
 function renderChannelView(){
   const ch=CHANNELS[state.currentChannel]; if(!ch) return;
