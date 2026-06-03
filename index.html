@@ -630,7 +630,10 @@
       <div class="header-nav-pill" id="hnav-analytics" onclick="showSection('analytics'); setHeaderPill('analytics')">📊 Analyse</div>
     </div>
     <div class="row">
-      <span class="small">Bonjour, <strong id="dash-prenom" style="color:var(--text)"></strong> 👋</span>
+      <div onclick="showSection('settings')" title="Paramètres" style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 12px; border-radius:50px; transition:all 0.2s" onmouseover="this.style.background='var(--dash-card)'" onmouseout="this.style.background='transparent'">
+        <div id="header-avatar" style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff; flex-shrink:0"></div>
+        <strong id="dash-prenom" style="font-size:13px; font-weight:600; color:var(--dash-text)"></strong>
+      </div>
       <button class="btn-secondary btn-sm" onclick="doLogout()">Déconnexion</button>
     </div>
   </div>
@@ -1018,6 +1021,57 @@
         <h3 style="margin:28px 0 10px">Marques (tous les comptes) <span class="badge" id="admin-brands-count">0</span></h3>
         <div id="admin-brands" style="overflow-x:auto"></div>
       </div>
+
+      <!-- Paramètres -->
+      <div id="panel-settings" style="display:none; max-width:640px">
+        <h2 style="margin-bottom:6px">Paramètres</h2>
+        <p class="small" style="margin-bottom:28px">Gérez votre compte et vos préférences.</p>
+
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--dash-peach); margin-bottom:20px">👤 Profil</div>
+          <div class="row" style="gap:16px; margin-bottom:24px">
+            <div id="settings-avatar" style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; color:#fff; flex-shrink:0"></div>
+            <div>
+              <div style="font-size:16px; font-weight:700" id="settings-fullname"></div>
+              <div class="small" id="settings-email-display"></div>
+            </div>
+          </div>
+          <div class="field"><label>Prénom</label><input type="text" id="settings-prenom" placeholder="Votre prénom" /></div>
+          <div class="field"><label>Email</label><input type="email" id="settings-email" placeholder="votre@email.com" /></div>
+          <button class="btn-primary" id="save-profile-btn" onclick="saveProfile()">Enregistrer les modifications</button>
+          <div id="save-profile-msg" style="display:none; font-size:13px; color:var(--dash-green); margin-top:10px">✓ Modifications enregistrées</div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--dash-peach); margin-bottom:20px">🔒 Mot de passe</div>
+          <div class="field"><label>Nouveau mot de passe</label><input type="password" id="settings-new-password" placeholder="Minimum 6 caractères" /></div>
+          <div class="field"><label>Confirmer le mot de passe</label><input type="password" id="settings-confirm-password" placeholder="Répétez le mot de passe" /></div>
+          <button class="btn-secondary" onclick="savePassword()">Changer le mot de passe</button>
+          <div id="save-password-msg" style="display:none; font-size:13px; margin-top:10px"></div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--dash-peach); margin-bottom:20px">💳 Plan actuel</div>
+          <div class="row" style="justify-content:space-between; gap:16px">
+            <div>
+              <div style="font-size:18px; font-weight:700" id="settings-plan-name">Solo</div>
+              <div class="small" style="margin-top:4px" id="settings-plan-desc">19€/mois · 1 marque · Tous les formats</div>
+            </div>
+            <button class="btn-primary" style="flex-shrink:0" onclick="showSection('pricing')">Changer de plan →</button>
+          </div>
+        </div>
+
+        <div class="card" style="border:2px solid #F87171">
+          <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#C0392B; margin-bottom:16px">⚠️ Zone de danger</div>
+          <div class="row" style="justify-content:space-between; gap:16px">
+            <div>
+              <div style="font-size:14px; font-weight:600">Supprimer mon compte</div>
+              <div class="small" style="margin-top:2px">Cette action est irréversible. Toutes vos données seront supprimées.</div>
+            </div>
+            <button class="btn-secondary" style="color:#C0392B; flex-shrink:0" onclick="deleteAccount()">Supprimer</button>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </div>
@@ -1319,7 +1373,9 @@ async function loadBrands(){
    DASHBOARD
    ========================================================================= */
 function renderDashboard(){
-  document.getElementById('dash-prenom').textContent=state.profile?.prenom||'';
+  const prenom=state.profile?.prenom||'';
+  document.getElementById('dash-prenom').textContent=prenom;
+  const hav=document.getElementById('header-avatar'); if(hav) hav.textContent=(prenom||state.user?.email||'?').trim().charAt(0).toUpperCase();
   document.getElementById('plan-badge').textContent=PLAN_LABEL[state.profile?.plan]||'Solo';
   // Liste des marques
   const list=document.getElementById('brand-list');
@@ -1551,6 +1607,7 @@ function setNavActive(el){
 }
 function exitAdmin(){
   document.getElementById('panel-admin').style.display='none';
+  const ps=document.getElementById('panel-settings'); if(ps) ps.style.display='none';
   document.getElementById('dash-brand').style.display='block';
 }
 function navTo(name,el){
@@ -1582,10 +1639,85 @@ function setHeaderPill(section){
   const pill=document.getElementById('hnav-'+section); if(pill) pill.classList.add('active');
 }
 function showSection(section){
+  if(section==='settings'){ showSettings(); return; }
+  if(section==='pricing'){ showToast('Gestion de l\'abonnement bientôt disponible.','ok'); return; }
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
   if(section==='brand-memory') navTo('memory', null);
   else if(section==='calendar') navTo('calendar', null);
   else if(section==='analytics') navTo('analytics', null);
+}
+/* ---- Paramètres (compte) ---- */
+function showSettings(){
+  if(!state.user){ showToast('Connectez-vous d\'abord.','err'); return; }
+  document.getElementById('dash-empty').style.display='none';
+  document.getElementById('dash-brand').style.display='none';
+  const ad=document.getElementById('panel-admin'); if(ad) ad.style.display='none';
+  const ps=document.getElementById('panel-settings');
+  ps.style.display='block'; ps.classList.remove('animate-in'); void ps.offsetWidth; ps.classList.add('animate-in');
+  setNavActive(null);
+  document.querySelectorAll('.header-nav-pill').forEach(p=>p.classList.remove('active'));
+  loadAccountSettings();
+}
+async function loadAccountSettings(){
+  if(!state.user) return;
+  let profile=state.profile||{};
+  try{ const { data }=await db.from('profiles').select('*').eq('id',state.user.id).single(); if(data) profile=data; }catch(e){}
+  const prenom=profile.prenom||(state.user.email||'').split('@')[0]||'';
+  const email=state.user.email||'';
+  const initial=(prenom||'?').charAt(0).toUpperCase();
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  const val=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; };
+  set('settings-avatar',initial); set('settings-fullname',prenom); set('settings-email-display',email);
+  val('settings-prenom',prenom); val('settings-email',email);
+  const plan=profile.plan||'solo';
+  const planNames={solo:'Solo — 19€/mois',pro:'Pro — 49€/mois',business:'Business — 99€/mois'};
+  const planDescs={solo:'1 marque · Tous les formats',pro:'Jusqu\'à 10 marques · Calendrier éditorial',business:'Marques illimitées · Accès équipe'};
+  set('settings-plan-name',planNames[plan]||'Solo'); set('settings-plan-desc',planDescs[plan]||'');
+}
+async function saveProfile(){
+  const prenom=document.getElementById('settings-prenom').value.trim();
+  const email=document.getElementById('settings-email').value.trim();
+  const btn=document.getElementById('save-profile-btn'); const msg=document.getElementById('save-profile-msg');
+  if(!prenom||!email){ showToast('Remplissez tous les champs.','err'); return; }
+  btn.disabled=true; btn.textContent='Enregistrement…';
+  try{
+    await db.from('profiles').update({ prenom }).eq('id',state.user.id);
+    if(state.profile) state.profile.prenom=prenom;
+    if(email!==state.user.email){ await db.auth.updateUser({ email }); }
+    const dn=document.getElementById('dash-prenom'); if(dn) dn.textContent=prenom;
+    const av=document.getElementById('header-avatar'); if(av) av.textContent=prenom.charAt(0).toUpperCase();
+    const sav=document.getElementById('settings-avatar'); if(sav) sav.textContent=prenom.charAt(0).toUpperCase();
+    const sf=document.getElementById('settings-fullname'); if(sf) sf.textContent=prenom;
+    if(msg){ msg.style.display='block'; setTimeout(()=>{ msg.style.display='none'; },3000); }
+  }catch(e){ showToast('Erreur lors de la sauvegarde.','err'); }
+  finally{ btn.disabled=false; btn.textContent='Enregistrer les modifications'; }
+}
+async function savePassword(){
+  const newPwd=document.getElementById('settings-new-password').value;
+  const confirmPwd=document.getElementById('settings-confirm-password').value;
+  const msg=document.getElementById('save-password-msg');
+  const show=(t,c)=>{ if(msg){ msg.textContent=t; msg.style.color=c; msg.style.display='block'; } };
+  if(!newPwd||newPwd.length<6){ show('⚠️ Le mot de passe doit faire au moins 6 caractères.','#C0392B'); return; }
+  if(newPwd!==confirmPwd){ show('⚠️ Les mots de passe ne correspondent pas.','#C0392B'); return; }
+  try{
+    const { error }=await db.auth.updateUser({ password:newPwd });
+    if(error) throw error;
+    show('✓ Mot de passe modifié avec succès.','var(--dash-green)');
+    document.getElementById('settings-new-password').value='';
+    document.getElementById('settings-confirm-password').value='';
+    setTimeout(()=>{ if(msg) msg.style.display='none'; },3000);
+  }catch(e){ show('⚠️ Erreur lors du changement de mot de passe.','#C0392B'); }
+}
+async function deleteAccount(){
+  if(!confirm('Êtes-vous sûr ? Cette action est irréversible. Toutes vos marques et contenus seront supprimés.')) return;
+  if(!confirm('Dernière confirmation : supprimer définitivement vos données ?')) return;
+  try{
+    await db.from('brands').delete().eq('user_id',state.user.id);
+    await db.from('generated_contents').delete().eq('user_id',state.user.id);
+    try{ await db.from('profiles').delete().eq('id',state.user.id); }catch(e){}
+    await db.auth.signOut();
+    window.location.reload();
+  }catch(e){ showToast('Erreur lors de la suppression.','err'); }
 }
 function renderChannelView(){
   const ch=CHANNELS[state.currentChannel]; if(!ch) return;
