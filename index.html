@@ -514,6 +514,7 @@
         <a class="brand-item" data-channel="Email"     onclick="navChannel('Email',this)"><span>✉</span><span>Email</span></a>
         <a class="brand-item" data-channel="X"         onclick="navChannel('X',this)"><span>𝕏</span><span>X / Twitter</span></a>
         <a class="brand-item" data-channel="Facebook"  onclick="navChannel('Facebook',this)"><span>f</span><span>Facebook</span></a>
+        <a class="brand-item" id="nav-batch" onclick="navTo('batch',this)"><span>⚡</span><span>Mode Batch</span><span style="margin-left:auto; font-size:10px; background:var(--green); color:#fff; border-radius:4px; padding:1px 6px; font-weight:600">NEW</span></a>
 
         <div class="side-label">Vérifier</div>
         <a class="brand-item" id="nav-tone" onclick="navTo('tone',this)"><span>◎</span><span>Tone Checker</span></a>
@@ -702,6 +703,32 @@
           <div id="historique-list" style="display:flex; flex-direction:column; gap:12px"></div>
         </div>
 
+        <!-- TAB: Mode Batch -->
+        <div id="panel-batch" class="tab-panel">
+          <h3 style="margin-bottom:6px">⚡ Mode Batch</h3>
+          <p class="small" style="margin-bottom:24px">Générez plusieurs posts en un seul clic — une semaine de contenu en quelques secondes.</p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px">
+            <div class="field"><label>Thème de la semaine</label><input id="batch-theme" placeholder="Ex : lancement produit, conseils experts, coulisses…" /></div>
+            <div class="field"><label>Canal</label><select id="batch-canal"><option>LinkedIn</option><option>Instagram</option><option value="Email">Email / Newsletter</option><option value="X / Twitter">X / Twitter</option><option>Facebook</option></select></div>
+            <div class="field"><label>Nombre de posts</label><select id="batch-nombre"><option value="3">3 posts</option><option value="5" selected>5 posts</option><option value="7">7 posts</option></select></div>
+            <div class="field"><label>Style</label><select id="batch-format"><option>Post classique</option><option>Storytelling</option><option>Liste de conseils</option><option>Question engageante</option><option>Coulisses</option></select></div>
+          </div>
+          <button class="btn-primary" id="batch-btn" onclick="generateBatch()">⚡ Générer les posts</button>
+
+          <div id="batch-loader" style="display:none; margin-top:24px">
+            <div class="small" id="batch-loader-text" style="margin-bottom:8px">Génération en cours…</div>
+            <div style="height:5px; background:var(--border); border-radius:3px; overflow:hidden"><div id="batch-progress-bar" style="height:100%; width:0%; background:var(--green); border-radius:3px; transition:width 0.4s ease"></div></div>
+          </div>
+
+          <div id="batch-results" style="display:none; margin-top:28px">
+            <div class="row" style="justify-content:space-between; margin-bottom:16px">
+              <div style="font-size:14px; font-weight:600; color:var(--text-main)"><span id="batch-results-count"></span> posts générés ✦</div>
+              <button class="btn-secondary btn-sm" onclick="copyAllBatch()">Tout copier</button>
+            </div>
+            <div id="batch-posts-list" style="display:flex; flex-direction:column; gap:16px"></div>
+          </div>
+        </div>
+
         <!-- TAB: Calendrier -->
         <div id="panel-calendar" class="tab-panel">
           <div class="grid-3">
@@ -850,6 +877,7 @@ const DEMO_MODE = true;
 /* ---------- État global ---------- */
 let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true, calMonth: null, calendarItems: [], currentVariants: [], selectedVariantIdx: 0, genRowId: null, genContext: null, memFiles: [] };
 let allHistoriqueItems = [];
+let lastBatchPosts = [];
 
 /* ---------- Utilitaires UI ---------- */
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
@@ -1036,6 +1064,7 @@ function navTo(name,el){
   if(name==='calendar') renderCalendarGrid();
   if(name==='tone') renderToneChecker();
   if(name==='historique') loadHistorique();
+  if(name==='batch') renderBatch();
 }
 function navChannel(channel,el){
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
@@ -1134,6 +1163,121 @@ function selectSuggestion(el){
   const sujet=el.getAttribute('data-sujet')||'';
   const input=document.getElementById('gen-sujet');
   if(input){ input.value=sujet; input.focus(); input.classList.add('flash'); setTimeout(()=>input.classList.remove('flash'),900); }
+}
+
+/* ---- Mode Batch : générer plusieurs posts d'un coup (local en mode démo) ---- */
+function renderBatch(){
+  document.getElementById('batch-results').style.display='none';
+  document.getElementById('batch-loader').style.display='none';
+}
+function computeBatch(theme, canal, style, nombre, brand){
+  const m=brand.brand_memory||{};
+  const kw=(m.mots_cles||[]).filter(Boolean);
+  const ctxBase={
+    nom:brand.nom,
+    secteurL:(brand.secteur||'votre secteur').toLowerCase(),
+    cles:kw.slice(0,3).join(', ')||'la clarté, l\'impact',
+    premier:kw[0]||'la clarté',
+    hashtags:kw.map(k=>'#'+k.replace(/\s+/g,'')).slice(0,5).join(' '),
+    hashtagsIG:kw.concat(['inspiration','communauté','astuce','marque','contenu','entrepreneur','france']).map(k=>'#'+k.replace(/\s+/g,'')).slice(0,12).join(' '),
+    cibleL:(m.cible||'votre audience').toLowerCase(),
+    tonL:(m.ton||'authentique').toLowerCase()
+  };
+  const channel={'LinkedIn':'LinkedIn','Instagram':'Instagram','Email':'Email','X / Twitter':'X','Facebook':'Facebook'}[canal]||'LinkedIn';
+  const fByChannel={LinkedIn:'post classique',Instagram:'caption post',Email:'newsletter',X:'tweet',Facebook:'post'};
+  const f=fByChannel[channel]||'post classique';
+  const ch=channel==='X'?'twitter':channel.toLowerCase();
+  const jours=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  const angles=[
+    {t:`${theme} : par où commencer`,a:'liste'},
+    {t:`${theme} — l'erreur à éviter`,a:'storytelling'},
+    {t:`${theme} en coulisses`,a:'storytelling'},
+    {t:`${theme} : 3 conseils concrets`,a:'liste'},
+    {t:`${theme}, la question qu'on nous pose`,a:'question'},
+    {t:`${theme} : notre méthode`,a:'liste'},
+    {t:`${theme} — un cas concret`,a:'storytelling'}
+  ];
+  const posts=[];
+  for(let i=0;i<nombre;i++){
+    const ang=angles[i%angles.length];
+    const approach = style==='Storytelling'||style==='Coulisses' ? 'storytelling'
+      : style==='Question engageante' ? 'question'
+      : style==='Liste de conseils' ? 'liste'
+      : ang.a;
+    const ctx=Object.assign({}, ctxBase, {sujet:ang.t});
+    posts.push({ jour:jours[i]||('Jour '+(i+1)), sujet:ang.t, contenu:buildVariant(approach, f, ch, ctx) });
+  }
+  return posts;
+}
+async function generateBatch(){
+  const theme=document.getElementById('batch-theme').value.trim();
+  const canal=document.getElementById('batch-canal').value;
+  const nombre=parseInt(document.getElementById('batch-nombre').value)||5;
+  const style=document.getElementById('batch-format').value;
+  if(!state.selectedBrand || !state.selectedBrand.brand_memory){ showToast('Sélectionnez une marque avec une Brand Memory.','err'); return; }
+  if(!theme){ showToast('Entrez un thème pour la semaine.','err'); return; }
+  const loaderEl=document.getElementById('batch-loader');
+  const btn=document.getElementById('batch-btn');
+  const progressBar=document.getElementById('batch-progress-bar');
+  const loaderText=document.getElementById('batch-loader-text');
+  loaderEl.style.display='block';
+  document.getElementById('batch-results').style.display='none';
+  btn.disabled=true; progressBar.style.width='0%';
+  const messages=['Analyse de la Brand Memory…','Génération des sujets…','Rédaction des posts…','Vérification du ton…','Finalisation…'];
+  let progress=0, msgIndex=0;
+  const progressInterval=setInterval(()=>{
+    progress=Math.min(progress+6,90); progressBar.style.width=progress+'%';
+    if(msgIndex<messages.length && progress>=msgIndex*18){ loaderText.textContent=messages[msgIndex++]; }
+  },180);
+  await wait(1600);
+  try{
+    if(!DEMO_MODE){ /* TODO: Edge Function sécurisée (clé API côté serveur, jamais ici) */ }
+    const posts=computeBatch(theme, canal, style, nombre, state.selectedBrand);
+    clearInterval(progressInterval); progressBar.style.width='100%';
+    setTimeout(async ()=>{
+      loaderEl.style.display='none';
+      renderBatchResults(posts, canal);
+      for(const post of posts){
+        try{ await db.from('generated_contents').insert({ brand_id:state.selectedBrand.id, user_id:state.user.id, sujet:post.sujet, format:canal+' — '+style, contenu:post.contenu }); }catch(e){}
+      }
+      loadHistorique();
+    },350);
+  }catch(e){
+    clearInterval(progressInterval); loaderEl.style.display='none';
+    showToast('Erreur lors de la génération. Réessayez.','err');
+  }finally{ btn.disabled=false; }
+}
+function renderBatchResults(posts, canal){
+  lastBatchPosts=posts||[];
+  const list=document.getElementById('batch-posts-list');
+  document.getElementById('batch-results-count').textContent=lastBatchPosts.length;
+  const e=escapeHtml;
+  list.innerHTML=lastBatchPosts.map((post,index)=>`
+    <div class="card" style="padding:0; overflow:hidden">
+      <div class="row" style="justify-content:space-between; padding:14px 18px; border-bottom:1.5px solid var(--border)">
+        <div class="row" style="gap:12px">
+          <span style="width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${index+1}</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-main)">${e(post.jour)}</div>
+            <div class="small">${e(post.sujet)}</div>
+          </div>
+        </div>
+        <button class="btn-secondary btn-sm" onclick="copyBatchPost(this,${index})">Copier</button>
+      </div>
+      <div style="padding:16px 18px; font-size:14px; line-height:1.8; white-space:pre-wrap; color:var(--text-main)">${e(post.contenu)}</div>
+    </div>`).join('');
+  document.getElementById('batch-results').style.display='block';
+}
+function copyBatchPost(btn,index){
+  const post=lastBatchPosts[index]; if(!post) return;
+  navigator.clipboard.writeText(post.contenu||'');
+  btn.textContent='Copié ✓'; setTimeout(()=>{ btn.textContent='Copier'; },2000);
+}
+function copyAllBatch(){
+  if(!lastBatchPosts.length) return;
+  const all=lastBatchPosts.map((p,i)=>`--- Post ${i+1} · ${p.jour} ---\n${p.contenu}`).join('\n\n');
+  navigator.clipboard.writeText(all);
+  showToast('Tous les posts copiés ✓','ok');
 }
 
 /* ---- Espace admin : prospects (leads) + inscrits (profiles) ---- */
