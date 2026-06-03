@@ -512,6 +512,9 @@
         <a class="brand-item" data-channel="X"         onclick="navChannel('X',this)"><span>𝕏</span><span>X / Twitter</span></a>
         <a class="brand-item" data-channel="Facebook"  onclick="navChannel('Facebook',this)"><span>f</span><span>Facebook</span></a>
 
+        <div class="side-label">Vérifier</div>
+        <a class="brand-item" id="nav-tone" onclick="navTo('tone',this)"><span>◎</span><span>Tone Checker</span></a>
+
         <div class="side-label">Planning</div>
         <a class="brand-item" id="nav-calendar" onclick="navTo('calendar',this)"><span>▦</span><span>Calendrier éditorial</span></a>
 
@@ -610,6 +613,52 @@
           </div>
 
           <button id="gen-decline" class="btn-secondary btn-sm" style="display:none;margin-top:14px" onclick="declineFormats()">Décliner en d'autres formats</button>
+        </div>
+
+        <!-- TAB: Tone of Voice Checker -->
+        <div id="panel-tone" class="tab-panel">
+          <h3 style="margin-bottom:6px">Tone of Voice Checker</h3>
+          <p class="small" style="margin-bottom:22px">Collez n'importe quel texte — on vérifie s'il correspond au ton de <strong id="checker-brand-name">votre marque</strong>.</p>
+
+          <div class="field">
+            <label>Votre texte à analyser</label>
+            <textarea id="tone-checker-input" rows="6" placeholder="Collez ici un post LinkedIn, un email, un texte de votre site, un caption Instagram…"></textarea>
+          </div>
+          <button class="btn-primary" id="tone-checker-btn" onclick="analyzeToneOfVoice()">✦ Analyser le ton</button>
+
+          <div id="tone-checker-loader" class="small" style="display:none; margin-top:20px">Analyse du ton en cours…</div>
+
+          <div id="tone-checker-result" style="display:none; margin-top:24px">
+            <div style="display:flex; align-items:center; gap:16px; padding:18px 20px; border:1.5px solid var(--border); border-radius:12px; background:var(--white); margin-bottom:16px;">
+              <div style="position:relative; width:68px; height:68px; flex-shrink:0;">
+                <svg width="68" height="68" viewBox="0 0 68 68">
+                  <circle cx="34" cy="34" r="28" fill="none" stroke="var(--border)" stroke-width="6"/>
+                  <circle id="tone-score-circle" cx="34" cy="34" r="28" fill="none" stroke="var(--green)" stroke-width="6" stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="176" transform="rotate(-90 34 34)" style="transition:stroke-dashoffset 1.2s ease;"/>
+                </svg>
+                <div id="tone-score-number" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:16px; font-weight:700; color:var(--text-main);">0%</div>
+              </div>
+              <div>
+                <div style="font-size:12px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:4px;">Alignement avec la marque</div>
+                <div id="tone-score-niveau" style="font-size:20px; font-weight:700; color:var(--text-main);"></div>
+                <div id="tone-score-resume" style="font-size:13px; color:var(--text-muted); margin-top:4px;"></div>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+              <div style="padding:16px; border:1.5px solid var(--border); border-radius:12px; background:var(--white);">
+                <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:#2D7A4F; margin-bottom:10px;">✓ Ce qui correspond</div>
+                <ul id="tone-positifs" style="list-style:none; padding:0; margin:0; font-size:13px; color:var(--text-main); display:flex; flex-direction:column; gap:7px;"></ul>
+              </div>
+              <div style="padding:16px; border:1.5px solid var(--border); border-radius:12px; background:var(--white);">
+                <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:#C0392B; margin-bottom:10px;">✗ Ce qui ne correspond pas</div>
+                <ul id="tone-negatifs" style="list-style:none; padding:0; margin:0; font-size:13px; color:var(--text-main); display:flex; flex-direction:column; gap:7px;"></ul>
+              </div>
+            </div>
+            <div style="padding:20px; border:1.5px solid var(--border); border-left:3px solid var(--peach); border-radius:0 12px 12px 0; background:var(--white);">
+              <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:#7A3020; margin-bottom:12px;">✦ Version réécrite dans le ton de la marque</div>
+              <div id="tone-version-corrigee" style="font-size:14px; line-height:1.8; white-space:pre-wrap; color:var(--text-main);"></div>
+              <button class="btn-secondary btn-sm" style="margin-top:14px" onclick="copyToneCorrected()">Copier la version corrigée</button>
+            </div>
+          </div>
         </div>
 
         <!-- TAB: Calendrier -->
@@ -942,6 +991,7 @@ function navTo(name,el){
   exitAdmin();
   setNavActive(el); showPanel(name);
   if(name==='calendar') renderCalendarGrid();
+  if(name==='tone') renderToneChecker();
 }
 function navChannel(channel,el){
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
@@ -1341,6 +1391,115 @@ async function updateCoherenceScore(){
   if(!v || !state.selectedBrand){ if(block) block.style.display='none'; return; }
   const data=await callCoherenceScore(v.contenu, state.selectedBrand.brand_memory||{});
   displayCoherenceScore(data);
+}
+
+/* ---- Tone of Voice Checker (analyse locale en mode démo) ---- */
+function escapeReg(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function renderToneChecker(){
+  document.getElementById('checker-brand-name').textContent = state.selectedBrand ? state.selectedBrand.nom : 'votre marque';
+  document.getElementById('tone-checker-input').value='';
+  document.getElementById('tone-checker-result').style.display='none';
+  document.getElementById('tone-checker-loader').style.display='none';
+}
+function toneRewrite(texte, m){
+  let out=String(texte||'');
+  (m.mots_interdits||[]).filter(Boolean).forEach(b=>{ out=out.replace(new RegExp('\\b'+escapeReg(b)+'\\b','gi'),''); });
+  out=out.replace(/[ \t]{2,}/g,' ').replace(/ +([.,;:!?])/g,'$1').replace(/\n{3,}/g,'\n\n').trim();
+  const kws=(m.mots_cles||[]).filter(Boolean);
+  const low=out.toLowerCase();
+  const missing=kws.find(k=>!low.includes(String(k).toLowerCase()));
+  if(missing) out+=`\n\nAu fond, tout est guidé par ${missing}.`;
+  const ton=(m.ton||'').toLowerCase();
+  if(/proche|complice|chaleureux|tutoie/.test(ton)) out+='\n\nEt vous, qu\'en pensez-vous ? 💬';
+  return out||String(texte||'');
+}
+function computeToneCheck(texte, m){
+  m=m||{}; const text=String(texte||'').toLowerCase();
+  const kws=(m.mots_cles||[]).filter(Boolean);
+  const bad=(m.mots_interdits||[]).filter(Boolean);
+  const vals=(m.valeurs||[]).filter(Boolean);
+  const pos=[], neg=[];
+  let score=58;
+  const kwHit=kws.filter(k=>text.includes(String(k).toLowerCase()));
+  if(kws.length){
+    score+=Math.round((kwHit.length/kws.length)*20);
+    if(kwHit.length) pos.push('Mots-clés de la marque présents : '+kwHit.slice(0,3).join(', '));
+    const miss=kws.filter(k=>!text.includes(String(k).toLowerCase()));
+    if(miss.length) neg.push('Mots-clés absents : '+miss.slice(0,3).join(', '));
+  }
+  const badHit=bad.filter(b=>text.includes(String(b).toLowerCase()));
+  if(badHit.length){ score-=badHit.length*13; neg.push('Contient des mots à éviter : '+badHit.slice(0,3).join(', ')); }
+  else { score+=10; pos.push('Aucun mot à éviter détecté'); }
+  const valHit=vals.filter(v=>text.includes(String(v).toLowerCase()));
+  if(valHit.length){ score+=6; pos.push('Valeurs de la marque reflétées : '+valHit.slice(0,2).join(', ')); }
+  const ton=(m.ton||'').toLowerCase();
+  const usesTu=/\btu\b|\bton\b|\btes\b|\btoi\b/.test(text), usesVous=/\bvous\b|\bvotre\b|\bvos\b/.test(text);
+  if(/proche|complice|chaleureux|tutoie/.test(ton)){
+    if(usesTu){ score+=4; pos.push('Le tutoiement colle au ton proche de la marque'); }
+    else if(usesVous){ score-=4; neg.push('Le vouvoiement éloigne du ton proche et complice attendu'); }
+  } else if(/professionnel|expert|corporate|institution|sérieux/.test(ton)){
+    if(usesVous){ score+=4; pos.push('Le vouvoiement correspond au ton professionnel'); }
+    else if(usesTu){ score-=4; neg.push('Le tutoiement détonne avec le ton professionnel attendu'); }
+  }
+  const cible=(m.cible||'').toLowerCase();
+  if(cible){
+    const cibleWords=cible.split(/[^a-zàâäéèêëïîôöùûüçœ]+/).filter(w=>w.length>3);
+    if(cibleWords.length && !cibleWords.some(w=>text.includes(w))) neg.push('Le texte ne s’adresse pas clairement à la cible : '+m.cible);
+  }
+  score=Math.max(0,Math.min(100,score));
+  const niveau=score>=86?'Excellent':score>=71?'Bon':score>=51?'Correct':'Faible';
+  const resume=score>=86?'Ce texte est parfaitement aligné avec la voix de la marque.'
+    :score>=71?'Texte globalement aligné — quelques ajustements le rendraient parfait.'
+    :score>=51?'Alignement correct, mais plusieurs éléments s’écartent du ton.'
+    :'Ce texte s’éloigne nettement de l’identité de la marque.';
+  if(pos.length<2) pos.push('La structure générale reste lisible et claire');
+  let negatifs = score>90 ? ['Aucun point problématique détecté'] : neg;
+  if(score<=90 && !negatifs.length) negatifs=['Renforcer la présence des mots-clés et l’adresse à la cible'];
+  return { score, niveau, resume, ce_qui_correspond:pos.slice(0,3), ce_qui_ne_correspond_pas:negatifs.slice(0,3), version_corrigee:toneRewrite(texte,m) };
+}
+async function callToneCheck(texte, brandMemory){
+  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function sécurisée (clé API côté serveur, jamais ici) */ }
+  await wait(900);
+  return computeToneCheck(texte, brandMemory);
+}
+async function analyzeToneOfVoice(){
+  const texte=document.getElementById('tone-checker-input').value.trim();
+  if(!texte){ showToast('Collez un texte à analyser.','err'); return; }
+  if(!state.selectedBrand || !state.selectedBrand.brand_memory){ showToast('Sélectionnez une marque avec une Brand Memory.','err'); return; }
+  const loaderEl=document.getElementById('tone-checker-loader');
+  const btn=document.getElementById('tone-checker-btn');
+  loaderEl.style.display='block';
+  document.getElementById('tone-checker-result').style.display='none';
+  btn.disabled=true;
+  try{
+    const result=await callToneCheck(texte, state.selectedBrand.brand_memory);
+    displayToneResult(result);
+  }catch(e){ showToast('Erreur lors de l’analyse. Réessayez.','err'); }
+  finally{ loaderEl.style.display='none'; btn.disabled=false; }
+}
+function displayToneResult(result){
+  const score=Math.max(0,Math.min(100,result.score||0));
+  let couleur;
+  if(score>=86) couleur='#2D7A4F'; else if(score>=71) couleur='#E8957A'; else if(score>=51) couleur='#F59E0B'; else couleur='#F87171';
+  const circle=document.getElementById('tone-score-circle');
+  const numberEl=document.getElementById('tone-score-number');
+  const offset=176-(176*score/100);
+  circle.style.stroke=couleur; circle.style.strokeDashoffset='176';
+  setTimeout(()=>{ circle.style.strokeDashoffset=offset; },100);
+  let current=0;
+  const interval=setInterval(()=>{ current+=2; if(current>=score){ current=score; clearInterval(interval); } numberEl.textContent=current+'%'; },20);
+  document.getElementById('tone-score-niveau').textContent=result.niveau||'';
+  document.getElementById('tone-score-niveau').style.color=couleur;
+  document.getElementById('tone-score-resume').textContent=result.resume||'';
+  document.getElementById('tone-positifs').innerHTML=(result.ce_qui_correspond||[]).map(p=>`<li style="display:flex;gap:8px;align-items:flex-start"><span style="color:#2D7A4F;flex-shrink:0">✓</span><span>${escapeHtml(p)}</span></li>`).join('');
+  document.getElementById('tone-negatifs').innerHTML=(result.ce_qui_ne_correspond_pas||[]).map(p=>`<li style="display:flex;gap:8px;align-items:flex-start"><span style="color:#C0392B;flex-shrink:0">✗</span><span>${escapeHtml(p)}</span></li>`).join('');
+  document.getElementById('tone-version-corrigee').textContent=result.version_corrigee||'';
+  document.getElementById('tone-checker-result').style.display='block';
+}
+function copyToneCorrected(){
+  const t=document.getElementById('tone-version-corrigee').textContent;
+  navigator.clipboard.writeText(t);
+  showToast('Version corrigée copiée ✓','ok');
 }
 function renderVariants(){
   const box=document.getElementById('gen-results');
