@@ -479,6 +479,40 @@
   @media (max-width: 900px){ #view-dashboard #templates-grid { grid-template-columns:1fr 1fr !important; } }
   @media (max-width: 600px){ #view-dashboard #templates-grid { grid-template-columns:1fr !important; } }
   @media (max-width: 860px){ #view-dashboard .header-nav-pill { padding:7px 10px; font-size:12px; } }
+
+  /* ===== RESPONSIVE DASHBOARD ===== */
+  .burger-btn { display:none; align-items:center; justify-content:center; width:38px; height:38px; background:var(--dash-card,#fff); border:none; border-radius:10px; font-size:20px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.08); flex-shrink:0; }
+  .sidebar-overlay { display:none; }
+  @media (max-width: 768px){
+    #view-dashboard .dash-header { padding:0 14px; gap:8px; }
+    #view-dashboard .dash-header .logo { display:none; }
+    #view-dashboard .burger-btn { display:flex; }
+    #view-dashboard .header-nav { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; flex-shrink:1; min-width:0; }
+    #view-dashboard .header-nav::-webkit-scrollbar { display:none; }
+    #view-dashboard .dash-header .row .small, #view-dashboard #dash-prenom { display:none; }
+    #view-dashboard .sidebar { position:fixed; left:-280px; top:64px; height:calc(100vh - 64px); width:260px; z-index:150; transition:left 0.3s ease; box-shadow:4px 0 20px rgba(0,0,0,0.15); }
+    #view-dashboard .sidebar.open { left:0; }
+    #view-dashboard .sidebar-overlay { display:none; position:fixed; inset:0; top:64px; background:rgba(0,0,0,0.4); z-index:149; }
+    #view-dashboard .sidebar-overlay.visible { display:block; }
+    #view-dashboard .main { padding:18px 14px; }
+    #view-dashboard [style*="grid-template-columns:repeat(3"],
+    #view-dashboard [style*="grid-template-columns:repeat(2"],
+    #view-dashboard [style*="grid-template-columns:1fr 1fr"],
+    #view-dashboard [style*="grid-template-columns:2fr 1fr"] { grid-template-columns:1fr !important; }
+    #view-dashboard #analytics-kpis { grid-template-columns:repeat(2,1fr) !important; }
+    #view-dashboard #templates-grid { grid-template-columns:1fr !important; }
+    #plan-pro-card { transform:none !important; }
+    #view-dashboard .format-list, #view-dashboard #template-filters { overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:4px; }
+    #view-dashboard .format-list::-webkit-scrollbar, #view-dashboard #template-filters::-webkit-scrollbar { display:none; }
+    #view-dashboard #gen-results > div[style*="display:flex"] { flex-direction:column; }
+    #view-dashboard #gen-results [style*="flex:0 0 210px"] { flex:1 1 auto !important; }
+    #share-modal-overlay > div, #template-modal-overlay > div, #reminder-modal-overlay > div { width:95vw !important; max-width:none !important; }
+  }
+  @media (min-width: 769px) and (max-width: 1024px){
+    #view-dashboard .sidebar { width:200px; }
+    #view-dashboard [style*="grid-template-columns:repeat(3"] { grid-template-columns:repeat(2,1fr) !important; }
+    #view-dashboard [style*="grid-template-columns:repeat(4"] { grid-template-columns:repeat(2,1fr) !important; }
+  }
 </style>
 </head>
 <body>
@@ -631,6 +665,7 @@
 <!-- ============ VIEW: DASHBOARD ============ -->
 <div id="view-dashboard" class="view">
   <div class="dash-header">
+    <button class="burger-btn" onclick="toggleMobileSidebar()" aria-label="Menu">☰</button>
     <div class="logo"><span class="dot"></span> Brief to Brand</div>
     <div class="header-nav">
       <div class="header-nav-pill" id="hnav-brand-memory" onclick="showSection('brand-memory'); setHeaderPill('brand-memory')">🧠 Brand Memory</div>
@@ -675,6 +710,7 @@
   </div>
 
   <div class="dash-body">
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
     <aside class="sidebar">
       <div class="side-label">Marque active</div>
       <div id="brand-list"></div>
@@ -3769,6 +3805,22 @@ function escapeHtml(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&
 /* =========================================================================
    INITIALISATION : session existante ?
    ========================================================================= */
+/* ---- Sidebar mobile (tiroir) ---- */
+function toggleMobileSidebar(){
+  const sb=document.querySelector('.sidebar'); const ov=document.getElementById('sidebar-overlay'); if(!sb) return;
+  if(sb.classList.contains('open')){ closeMobileSidebar(); }
+  else { sb.classList.add('open'); if(ov) ov.classList.add('visible'); }
+}
+function closeMobileSidebar(){
+  const sb=document.querySelector('.sidebar'); const ov=document.getElementById('sidebar-overlay');
+  if(sb) sb.classList.remove('open'); if(ov) ov.classList.remove('visible');
+}
+// Sur mobile, fermer le tiroir dès qu'on navigue (n'altère pas la logique existante)
+['showSection','navChannel','navTo'].forEach(function(fn){
+  var orig=window[fn]; if(typeof orig!=='function') return;
+  window[fn]=function(){ if(window.innerWidth<768) closeMobileSidebar(); return orig.apply(this, arguments); };
+});
+
 (async function init(){
   if(await checkShareMode()) return;   // mode "lien partagé" : affiche la Brand Memory en lecture seule
   const { data:{ session } } = await db.auth.getSession();
