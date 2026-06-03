@@ -465,13 +465,12 @@
   #view-dashboard #mem-dropzone, #view-brand-editor .dropzone { border:2px dashed var(--dash-yellow); background:#FFF8E0; border-radius: var(--dash-radius); }
   /* Navigation principale dans le header */
   #view-dashboard .header-nav { display:flex; gap:6px; background:var(--dash-card); border-radius:50px; padding:5px; box-shadow:0 2px 10px rgba(0,0,0,0.07); }
-  #view-dashboard .header-nav-item { padding:7px 16px; border-radius:50px; font-size:13px; font-weight:600; color:var(--dash-muted); cursor:pointer; transition:all 0.2s; white-space:nowrap; display:flex; align-items:center; }
-  #view-dashboard .header-nav-item:hover { color:var(--dash-text); }
-  #view-dashboard .header-nav-item.active { background:linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); color:#fff; box-shadow:0 4px 12px rgba(245,196,0,0.4); }
-  /* Canaux dans la sidebar : masqués sauf en mode Générer */
-  #view-dashboard .sidebar-channels { display:none; }
-  #view-dashboard .sidebar-channels.visible { display:block; }
-  @media (max-width: 860px){ #view-dashboard .header-nav-item { padding:7px 10px; font-size:12px; } }
+  #view-dashboard .header-nav-pill { padding:7px 16px; border-radius:50px; font-size:13px; font-weight:600; color:var(--dash-muted); cursor:pointer; transition:all 0.2s; white-space:nowrap; display:flex; align-items:center; }
+  #view-dashboard .header-nav-pill:hover { color:var(--dash-text); }
+  #view-dashboard .header-nav-pill.active { background:linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); color:#fff; box-shadow:0 4px 12px rgba(245,196,0,0.4); }
+  /* Canaux dans la sidebar : toujours visibles */
+  #view-dashboard .sidebar-channels { display:block; }
+  @media (max-width: 860px){ #view-dashboard .header-nav-pill { padding:7px 10px; font-size:12px; } }
 </style>
 </head>
 <body>
@@ -626,10 +625,9 @@
   <div class="dash-header">
     <div class="logo"><span class="dot"></span> Brief to Brand</div>
     <div class="header-nav">
-      <div class="header-nav-item" id="hnav-marque" onclick="showSection('brand-memory')">🧠 Marque</div>
-      <div class="header-nav-item" id="hnav-generer" onclick="showSection('generer')">✏️ Générer</div>
-      <div class="header-nav-item" id="hnav-calendrier" onclick="showSection('calendar')">📅 Calendrier<span id="today-reminder-badge" style="display:none; font-size:11px; background:#C0392B; color:#fff; border-radius:10px; padding:1px 7px; font-weight:600; margin-left:6px"></span></div>
-      <div class="header-nav-item" id="hnav-analyse" onclick="showSection('analytics')">📊 Analyse</div>
+      <div class="header-nav-pill" id="hnav-brand-memory" onclick="showSection('brand-memory'); setHeaderPill('brand-memory')">🧠 Brand Memory</div>
+      <div class="header-nav-pill" id="hnav-calendar" onclick="showSection('calendar'); setHeaderPill('calendar')">📅 Calendrier<span id="today-reminder-badge" style="display:none; font-size:11px; background:#C0392B; color:#fff; border-radius:10px; padding:1px 7px; font-weight:600; margin-left:6px"></span></div>
+      <div class="header-nav-pill" id="hnav-analytics" onclick="showSection('analytics'); setHeaderPill('analytics')">📊 Analyse</div>
     </div>
     <div class="row">
       <span class="small">Bonjour, <strong id="dash-prenom" style="color:var(--text)"></strong> 👋</span>
@@ -1357,7 +1355,7 @@ function renderBrand(){
   document.getElementById('cur-sector').textContent=b.secteur||'';
   renderMemory();
   showPanel('memory');
-  setHeaderNav('marque');
+  setHeaderPill('brand-memory');
   renderCalendarGrid();
   loadHistorique();
 }
@@ -1565,8 +1563,8 @@ function navTo(name,el){
   if(name==='batch') renderBatch();
   if(name==='analytics') loadAnalytics();
   // Synchronise les pills du header
-  const hmap={ memory:'marque', calendar:'calendrier', analytics:'analyse' };
-  if(hmap[name]) setHeaderNav(hmap[name]);
+  const hmap={ memory:'brand-memory', calendar:'calendar', analytics:'analytics' };
+  if(hmap[name]) setHeaderPill(hmap[name]);
 }
 function navChannel(channel,el){
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
@@ -1575,26 +1573,19 @@ function navChannel(channel,el){
   state.currentChannel=channel;
   showPanel('generate');
   renderChannelView();
-  setHeaderNav('generer');
+  // Un canal n'est pas dans les pills du header → on les désactive
+  document.querySelectorAll('.header-nav-pill').forEach(p=>p.classList.remove('active'));
 }
 /* ---- Navigation principale (pills du header) ---- */
-function setHeaderNav(section){
-  document.querySelectorAll('.header-nav-item').forEach(el=>el.classList.remove('active'));
-  const el=document.getElementById('hnav-'+section); if(el) el.classList.add('active');
-  const ch=document.querySelector('.sidebar-channels');
-  if(ch){ if(section==='generer') ch.classList.add('visible'); else ch.classList.remove('visible'); }
+function setHeaderPill(section){
+  document.querySelectorAll('.header-nav-pill').forEach(el=>el.classList.remove('active'));
+  const pill=document.getElementById('hnav-'+section); if(pill) pill.classList.add('active');
 }
 function showSection(section){
   if(!state.selectedBrand){ showToast('Sélectionnez d\'abord une marque.','err'); return; }
-  if(section==='brand-memory'){ navTo('memory', null); }
-  else if(section==='calendar'){ navTo('calendar', null); }
-  else if(section==='analytics'){ navTo('analytics', null); }
-  else if(section==='generer'){
-    setHeaderNav('generer');
-    const ch=state.currentChannel||'LinkedIn';
-    const el=document.querySelector(`#dash-side-nav [data-channel="${ch}"]`);
-    navChannel(ch, el);
-  }
+  if(section==='brand-memory') navTo('memory', null);
+  else if(section==='calendar') navTo('calendar', null);
+  else if(section==='analytics') navTo('analytics', null);
 }
 function renderChannelView(){
   const ch=CHANNELS[state.currentChannel]; if(!ch) return;
