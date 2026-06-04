@@ -40,11 +40,26 @@ function writePng(file, w, h, rgba) {
   ]);
   fs.writeFileSync(file, png);
 }
+// bruit de valeur déterministe (grain craie), lissé bilinéairement
+function hash(ix, iy) {
+  let h = (ix * 374761393 + iy * 668265263) | 0;
+  h = (h ^ (h >> 13)) * 1274126177;
+  return ((h ^ (h >> 16)) >>> 0) / 4294967295;
+}
+function vnoise(x, y) {
+  const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+  return hash(x0, y0) * (1 - sx) * (1 - sy) + hash(x0 + 1, y0) * sx * (1 - sy)
+       + hash(x0, y0 + 1) * (1 - sx) * sy + hash(x0 + 1, y0 + 1) * sx * sy;
+}
+
 function render(size, scale = 1.0, bg = null) {
   const c = size / 2;
   const rRing = 0.40 * size * scale;
-  const halfw = 0.078 * size * scale;
-  const rDot = 0.14 * size * scale;
+  const halfw = 0.075 * size * scale;
+  const rDot = 0.13 * size * scale;
+  const gf = 0.9 * (32 / size);            // fréquence de grain (constante en pixels affichés)
+  const GAP_C = -2.3, GAP_H = 0.17;        // petite ouverture du tracé (trait levé)
   const SS = 4;
   const out = Buffer.alloc(size * size * 4);
   for (let py = 0; py < size; py++) {
@@ -55,10 +70,25 @@ function render(size, scale = 1.0, bg = null) {
           const x = px + (sx + 0.5) / SS - c;
           const y = py + (sy + 0.5) / SS - c;
           const d = Math.hypot(x, y);
-          if (Math.abs(d - rRing) <= halfw || d <= rDot) ink++;
+          const ang = Math.atan2(y, x);
+          // tracé qui ondule (cercle imparfait) + épaisseur variable
+          const wob = 1 + 0.045 * Math.sin(3 * ang + 0.8) + 0.028 * Math.sin(5 * ang + 2.1) + 0.02 * Math.sin(2 * ang - 1.0);
+          const rr = rRing * wob;
+          const hw = halfw * (1 + 0.25 * Math.sin(4 * ang + 0.5));
+          let inRing = Math.abs(d - rr) <= hw;
+          let da = ang - GAP_C; da = Math.atan2(Math.sin(da), Math.cos(da));
+          if (Math.abs(da) < GAP_H) inRing = false;       // ouverture
+          const rd = rDot * (1 + 0.10 * Math.sin(3 * ang + 1.7) + 0.06 * Math.sin(5 * ang));
+          if (inRing || d <= rd) ink++;
         }
       }
-      const cov = ink / (SS * SS);
+      let cov = ink / (SS * SS);
+      // grain craie : on érode légèrement et irrégulièrement la couverture
+      if (cov > 0) {
+        const grain = 0.62 + 0.38 * vnoise(px * gf, py * gf);
+        const grain2 = 0.78 + 0.22 * vnoise(px * gf * 2.3 + 50, py * gf * 2.3 + 50);
+        cov *= grain * grain2;
+      }
       const i = (py * size + px) * 4;
       if (bg === null) {
         out[i] = SAGE[0]; out[i + 1] = SAGE[1]; out[i + 2] = SAGE[2];
