@@ -673,6 +673,16 @@
       <div class="header-nav-pill" id="hnav-analytics" onclick="showSection('analytics'); setHeaderPill('analytics')">📊 Analyse</div>
     </div>
     <div class="row">
+      <div style="position:relative">
+        <button id="notif-bell" onclick="toggleNotifPanel(event)" title="Notifications" aria-label="Notifications" style="background:none; border:none; cursor:pointer; font-size:20px; padding:6px 8px; border-radius:50%; line-height:1; position:relative; transition:background 0.2s" onmouseover="this.style.background='var(--dash-card)'" onmouseout="this.style.background='transparent'">🔔<span id="notif-badge" style="display:none; position:absolute; top:2px; right:2px; min-width:16px; height:16px; padding:0 3px; box-sizing:border-box; background:#C0392B; color:#fff; border-radius:10px; font-size:10px; font-weight:700; line-height:16px; text-align:center"></span></button>
+        <div id="notif-panel" style="display:none; position:absolute; top:46px; right:0; width:300px; max-width:86vw; background:var(--white); border:1.5px solid var(--border); border-radius:14px; box-shadow:0 12px 32px rgba(0,0,0,0.14); z-index:200; overflow:hidden">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border)">
+            <strong style="font-size:14px; color:var(--text-main)">Notifications</strong>
+            <button onclick="clearNotifs()" style="background:none; border:none; cursor:pointer; font-size:12px; color:var(--text-muted)">Tout effacer</button>
+          </div>
+          <div id="notif-list" style="max-height:340px; overflow-y:auto"></div>
+        </div>
+      </div>
       <div onclick="showSection('settings')" title="Paramètres" style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 12px; border-radius:50px; transition:all 0.2s" onmouseover="this.style.background='var(--dash-card)'" onmouseout="this.style.background='transparent'">
         <div id="header-avatar" style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff; flex-shrink:0"></div>
         <strong id="dash-prenom" style="font-size:13px; font-weight:600; color:var(--dash-text)"></strong>
@@ -1389,6 +1399,54 @@ let currentReminderData = {};
 function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
 function loader(on,msg){ const l=document.getElementById('loader'); document.getElementById('loader-msg').textContent=msg||'Chargement...'; l.classList.toggle('show',!!on); }
 function showToast(msg,type){ const t=document.getElementById('toast'); t.textContent=msg; t.className='show '+(type||''); setTimeout(()=>t.className='',2600); }
+
+/* ---------- Notifications (cloche header, stockées en local par utilisateur) ---------- */
+function notifKey(){ return 'btb_notifs_'+((state.user&&state.user.id)||'anon'); }
+function loadNotifsStore(){ try{ return JSON.parse(localStorage.getItem(notifKey())||'[]'); }catch(e){ return []; } }
+function saveNotifsStore(arr){ try{ localStorage.setItem(notifKey(), JSON.stringify(arr.slice(0,50))); }catch(e){} }
+function addNotif(icon, text){
+  const arr=loadNotifsStore();
+  arr.unshift({ id:Date.now()+'-'+Math.random().toString(36).slice(2,6), icon:icon||'🔔', text:text||'', ts:Date.now(), read:false });
+  saveNotifsStore(arr);
+  renderNotifs();
+}
+function notifAgo(ts){
+  const s=Math.floor((Date.now()-(ts||0))/1000);
+  if(s<60) return 'à l\'instant';
+  if(s<3600) return 'il y a '+Math.floor(s/60)+' min';
+  if(s<86400) return 'il y a '+Math.floor(s/3600)+' h';
+  return 'il y a '+Math.floor(s/86400)+' j';
+}
+function renderNotifs(){
+  const arr=loadNotifsStore();
+  const badge=document.getElementById('notif-badge');
+  const list=document.getElementById('notif-list');
+  const unread=arr.filter(n=>!n.read).length;
+  if(badge){ if(unread>0){ badge.textContent=unread>9?'9+':unread; badge.style.display='block'; } else { badge.style.display='none'; } }
+  if(list){
+    if(!arr.length){ list.innerHTML='<div style="padding:24px 14px; text-align:center; color:var(--text-muted); font-size:13px">Aucune notification pour le moment.</div>'; }
+    else { list.innerHTML=arr.map(n=>`<div style="display:flex; gap:10px; padding:11px 14px; border-bottom:1px solid var(--border); background:${n.read?'transparent':'rgba(245,196,0,0.10)'}"><div style="font-size:18px; flex-shrink:0">${escapeHtml(n.icon)}</div><div style="min-width:0"><div style="font-size:13px; color:var(--text-main); line-height:1.4">${escapeHtml(n.text)}</div><div style="font-size:11px; color:var(--text-muted); margin-top:2px">${notifAgo(n.ts)}</div></div></div>`).join(''); }
+  }
+}
+function toggleNotifPanel(ev){
+  if(ev) ev.stopPropagation();
+  const panel=document.getElementById('notif-panel'); if(!panel) return;
+  const open=panel.style.display==='block';
+  if(open){ panel.style.display='none'; document.removeEventListener('click', closeNotifOnOutside); return; }
+  renderNotifs();
+  panel.style.display='block';
+  const arr=loadNotifsStore(); arr.forEach(n=>n.read=true); saveNotifsStore(arr);
+  const b=document.getElementById('notif-badge'); if(b) b.style.display='none';
+  setTimeout(()=>document.addEventListener('click', closeNotifOnOutside), 0);
+}
+function closeNotifOnOutside(e){
+  const panel=document.getElementById('notif-panel'), bell=document.getElementById('notif-bell');
+  if(!panel) return;
+  if(panel.contains(e.target) || (bell&&bell.contains(e.target))) return;
+  panel.style.display='none';
+  document.removeEventListener('click', closeNotifOnOutside);
+}
+function clearNotifs(){ saveNotifsStore([]); renderNotifs(); }
 const PLAN_LABEL = { solo:'Solo', pro:'Pro', business:'Business' };
 const PLAN_LIMIT = { solo:1, pro:10, business:Infinity };
 const NET_ICON = { LinkedIn:'💼', Instagram:'📸', Email:'✉️', X:'🐦', Facebook:'👥' };
@@ -1410,6 +1468,7 @@ function showDashboard(){
   if(!state.selectedBrand && state.brands.length){ state.selectedBrand=state.brands[0]; }
   renderDashboard();
   initOnboarding();
+  renderNotifs();
 }
 
 /* ---- Onboarding guidé en 3 étapes (persisté en localStorage) ---- */
@@ -2370,6 +2429,8 @@ async function generateBatch(){
       }
       if(skipped) showToast(skipped+' post(s) non enregistré(s) : un champ n\'a pas été rempli.','err');
       loadHistorique();
+      const saved=posts.length-skipped;
+      if(saved>0) addNotif('📦', saved+' post'+(saved>1?'s':'')+' généré'+(saved>1?'s':'')+' en lot ('+canal+')');
     },350);
   }catch(e){
     clearInterval(progressInterval); loaderEl.style.display='none';
@@ -2636,6 +2697,7 @@ async function generateVariants(sujet, fmt){
   loadHistorique();
   if(!onboardingState.step3) completeOnboardingStep(3);
   showToast('3 variantes générées ✓','ok');
+  addNotif('✨','3 variantes générées'+(state.selectedBrand&&state.selectedBrand.nom?' pour « '+state.selectedBrand.nom+' »':''));
 }
 // Construit une variante adaptée à l'approche, au format et au réseau (mode démo).
 function buildVariant(approach, f, ch, ctx){
@@ -3795,6 +3857,7 @@ async function beSave(){
   completeOnboardingStep(1);
   showDashboard();
   showToast('Marque créée ✓','ok');
+  addNotif('🏷️','Marque « '+(data.nom||'sans nom')+' » créée');
 }
 
 /* =========================================================================
