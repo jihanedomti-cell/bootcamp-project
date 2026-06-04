@@ -1,0 +1,15 @@
+{
+  "name": "Brandly",
+  "short_name": "Brandly",
+  "description": "La mémoire de marque de vos contenus",
+  "lang": "fr",
+  "start_url": "../",
+  "scope": "../",
+  "display": "standalone",
+  "theme_color": "#485B43",
+  "background_color": "#F4F2EA",
+  "icons": [
+    { "src": "favicon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

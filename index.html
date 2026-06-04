@@ -4,9 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Brandly — La mémoire de marque de vos contenus</title>
+<!-- Favicons & PWA (fichiers dans /assets — voir assets/README.md) -->
+<link rel="icon" type="image/svg+xml" href="assets/brandly-icon-sage.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="assets/favicon-180.png" />
+<link rel="manifest" href="assets/site.webmanifest" />
+<meta name="theme-color" content="#485B43" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,800;1,400&family=Inter:wght@400;500;600&family=League+Spartan:wght@500;600;700&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,800;1,400&family=Inter:wght@400;500;600&family=League+Spartan:wght@500;600;700&family=Montserrat:wght@400;500;600&family=Quicksand:wght@600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
     --yellow: #8AA078;
@@ -172,6 +178,23 @@
   .logo { font-family: 'League Spartan', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.01em; font-size: 22px; color: var(--dark); display: flex; align-items: center; gap: 8px; }
   .logo .dot { color: var(--yellow); font-size: 14px; line-height: 1; }
   .logo .dot::before { content: '●'; }
+
+  /* ===== Logo Brandly — composant réutilisable =====
+     structure : picto SVG (/assets) + wordmark texte (Quicksand)
+     variant : --full (défaut) | --icon (picto seul) | --wordmark (texte seul)
+     size    : --sm | --md | --lg  (tout est en em → scale proportionnel, jamais de stretch)
+     --light : sur fond foncé (#485B43) → picto + wordmark en crème */
+  .brandly-logo { display: inline-flex; align-items: center; gap: 0.32em; line-height: 1; vertical-align: middle; font-size: 24px; text-decoration: none; }
+  .brandly-logo__icon { display: block; height: 1em; width: auto; flex: none; -webkit-user-drag: none; user-select: none; }
+  .brandly-logo__word { font-family: 'Quicksand', 'League Spartan', system-ui, sans-serif; font-weight: 700; font-size: 1.04em; line-height: 1; letter-spacing: -0.015em; color: #7E9580; white-space: nowrap; }
+  .brandly-logo__dot { color: #C2714E; }
+  .brandly-logo--sm { font-size: 18px; }
+  .brandly-logo--md { font-size: 24px; }
+  .brandly-logo--lg { font-size: 34px; }
+  .brandly-logo--icon { gap: 0; }
+  .brandly-logo--icon .brandly-logo__word { display: none; }
+  .brandly-logo--wordmark .brandly-logo__icon { display: none; }
+  .brandly-logo--light .brandly-logo__word { color: #F4F2EA; }
 
   /* ===== HERO ===== */
   .hero { position: relative; overflow: hidden; background: var(--cream); padding: 90px 0; }
@@ -544,7 +567,7 @@
 <div id="view-landing" class="view active">
   <header class="site-header">
     <div class="container inner">
-      <div class="logo"><span class="dot"></span> Brandly</div>
+      <div class="logo brandly-logo brandly-logo--full brandly-logo--md" aria-label="Brandly"><img class="brandly-logo__icon" src="assets/brandly-icon-sage.svg" alt="" aria-hidden="true" draggable="false" /><span class="brandly-logo__word">brandly<span class="brandly-logo__dot">.</span></span></div>
       <div class="row">
         <button class="btn-ghost" onclick="showAuth('login')">Connexion</button>
         <button class="btn-primary btn-sm" onclick="showAuth('signup')">Essai gratuit 7 jours</button>
@@ -659,7 +682,7 @@
 <div id="view-auth" class="view">
   <div class="auth-wrap">
     <div class="auth-card card">
-      <div class="logo" style="justify-content:center;margin-bottom:20px;"><span class="dot"></span> Brandly</div>
+      <div class="logo brandly-logo brandly-logo--full brandly-logo--md" style="margin-bottom:20px;" aria-label="Brandly"><img class="brandly-logo__icon" src="assets/brandly-icon-sage.svg" alt="" aria-hidden="true" draggable="false" /><span class="brandly-logo__word">brandly<span class="brandly-logo__dot">.</span></span></div>
       <div class="auth-tabs">
         <button id="tab-signup" class="active" onclick="switchAuth('signup')">Inscription</button>
         <button id="tab-login" onclick="switchAuth('login')">Connexion</button>
@@ -689,7 +712,7 @@
 <div id="view-dashboard" class="view">
   <div class="dash-header">
     <button class="burger-btn" onclick="toggleMobileSidebar()" aria-label="Menu">☰</button>
-    <div class="logo"><span class="dot"></span> Brandly</div>
+    <div class="logo brandly-logo brandly-logo--full brandly-logo--md" aria-label="Brandly"><img class="brandly-logo__icon" src="assets/brandly-icon-sage.svg" alt="" aria-hidden="true" draggable="false" /><span class="brandly-logo__word">brandly<span class="brandly-logo__dot">.</span></span></div>
     <div class="header-nav">
       <div class="header-nav-pill" id="hnav-brand-memory" onclick="showSection('brand-memory'); setHeaderPill('brand-memory')">🧠 Brand Memory</div>
       <div class="header-nav-pill" id="hnav-calendar" onclick="showSection('calendar'); setHeaderPill('calendar')">📅 Calendrier<span id="today-reminder-badge" style="display:none; font-size:11px; background:#C0392B; color:#fff; border-radius:10px; padding:1px 7px; font-weight:600; margin-left:6px"></span></div>
@@ -1242,7 +1265,7 @@
 <!-- ============ VIEW: BRAND EDITOR ============ -->
 <div id="view-brand-editor" class="view">
   <div class="dash-header">
-    <div class="logo"><span class="dot"></span> Brandly</div>
+    <div class="logo brandly-logo brandly-logo--full brandly-logo--md" aria-label="Brandly"><img class="brandly-logo__icon" src="assets/brandly-icon-sage.svg" alt="" aria-hidden="true" draggable="false" /><span class="brandly-logo__word">brandly<span class="brandly-logo__dot">.</span></span></div>
     <button class="btn-secondary btn-sm" onclick="showDashboard()">← Retour au dashboard</button>
   </div>
   <div class="container" style="max-width:680px;padding-top:36px;padding-bottom:60px">
@@ -1366,6 +1389,22 @@
 <!-- Graphiques de l'analyse des posts (Chart.js) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
+/* =========================================================================
+   LOGO BRANDLY — composant réutilisable (équivalent vanilla de <Logo variant size light/>)
+   Usage : element.innerHTML = logoMarkup({ variant:'full', size:'md' });
+     variant : 'full' (picto+wordmark) | 'icon' (picto seul) | 'wordmark' (texte seul)
+     size    : 'sm' | 'md' | 'lg'
+     light   : true sur fond foncé (#485B43) → variantes crème (#F4F2EA)
+   Le ratio est toujours préservé (jamais de déformation). Fichiers : /assets.
+   ========================================================================= */
+function logoMarkup({ variant = 'full', size = 'md', light = false, alt = 'Brandly' } = {}) {
+  const icon = light ? 'assets/brandly-icon-light.svg' : 'assets/brandly-icon-sage.svg';
+  const cls = `brandly-logo brandly-logo--${variant} brandly-logo--${size}` + (light ? ' brandly-logo--light' : '');
+  const img = `<img class="brandly-logo__icon" src="${icon}" alt="" aria-hidden="true" draggable="false" />`;
+  const word = `<span class="brandly-logo__word">brandly<span class="brandly-logo__dot">.</span></span>`;
+  return `<span class="${cls}" role="img" aria-label="${alt}">${img}${word}</span>`;
+}
+
 /* =========================================================================
    CONFIGURATION
    La clé Supabase ci-dessous est PUBLIQUE par conception (aucun risque).
