@@ -5,6 +5,10 @@
 *.pem
 secrets.*
 
+# Exception : les gabarits d'exemple (sans secret) restent versionnés
+!.env.example
+!**/.env.example
+
 # Dépendances (au cas où)
 node_modules/
 

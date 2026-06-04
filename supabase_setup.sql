@@ -37,6 +37,12 @@ create table if not exists public.generated_contents (
   created_at  timestamptz not null default now()
 );
 
+-- ---------- MIGRATION : photo associée au contenu (banque d'images Pexels) ----------
+-- Stocke la photo retenue pour un post (suggestion auto ou choix utilisateur) :
+--   { id, url_small, url_large, photographer, photographer_url, alt, placeholder }
+-- Idempotent : sans risque si déjà appliqué. RLS inchangée (mêmes lignes, même policy).
+alter table public.generated_contents add column if not exists image jsonb;
+
 -- ---------- TABLE : leads ----------
 create table if not exists public.leads (
   id              uuid primary key default gen_random_uuid(),

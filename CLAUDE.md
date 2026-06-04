@@ -32,6 +32,19 @@ secondes, plus un calendrier éditorial.
 Voir `supabase_setup.sql` (à exécuter dans Supabase → SQL Editor).
 Tables : `profiles`, `brands`, `generated_contents`, `leads` — toutes protégées
 par RLS. Un trigger crée automatiquement le `profile` à chaque inscription.
+La colonne `generated_contents.image` (jsonb) mémorise la photo retenue d'un post.
+
+## Photos des posts (banque d'images Pexels)
+Les aperçus LinkedIn / Instagram / Facebook intègrent une vraie photo, suggérée
+automatiquement puis modifiable (bouton « Changer la photo » → grille + recherche
+libre). La photo est mémorisée avec le post (`generated_contents.image`).
+- **Proxy serveur** : Edge Function `supabase/functions/search-photos/` (Deno) —
+  la clé **`PEXELS_API_KEY` reste côté serveur** (secret Supabase), jamais dans le
+  front. Déploiement + secret : voir le `README.md` de la fonction.
+- **Sans clé/fonction** : fallback propre (visuels de démonstration sauge), aucun
+  crash. Le front n'appelle **jamais** Pexels en direct (clé + CORS).
+- En démo, les **mots-clés visuels (EN)** sont dérivés localement ; en mode IA réel,
+  l'Edge Function devra renvoyer `{ contenu, visual_keywords:[...] }`.
 
 ## Structure du fichier `index.html`
 4 vues commutées en JS (pas de rechargement) :

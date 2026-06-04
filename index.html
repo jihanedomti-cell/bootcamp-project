@@ -559,6 +559,37 @@
     #view-dashboard [style*="grid-template-columns:repeat(3"] { grid-template-columns:repeat(2,1fr) !important; }
     #view-dashboard [style*="grid-template-columns:repeat(4"] { grid-template-columns:repeat(2,1fr) !important; }
   }
+  /* ===== Photos dans les posts (banque d'images) — palette sauge ===== */
+  .post-photo { margin:10px 0 0; border-radius:12px; overflow:hidden; position:relative; background:#EDEFE8; }
+  .post-photo-img { display:block; width:100%; max-height:340px; object-fit:cover; }
+  .post-photo-credit { position:absolute; right:8px; bottom:8px; font-size:11px; color:#fff; background:rgba(44,51,40,0.55); padding:3px 8px; border-radius:20px; text-decoration:none; }
+  a.post-photo-credit:hover { background:rgba(44,51,40,0.8); }
+  .post-photo--skeleton { height:200px; }
+  .photo-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px; }
+
+  /* skeletons (shimmer) */
+  .ph-skel, .pp-skel { position:relative; overflow:hidden; background:#E2E7DB; }
+  .ph-skel { width:100%; height:100%; }
+  .ph-skel::after, .pp-skel::after { content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent); animation:phShimmer 1.3s infinite; }
+  @keyframes phShimmer { 100% { transform:translateX(100%); } }
+
+  /* sélecteur de photo (modale) */
+  .pp-overlay { position:fixed; inset:0; z-index:400; background:rgba(44,51,40,0.45); display:flex; align-items:center; justify-content:center; padding:18px; }
+  .pp-modal { width:680px; max-width:96vw; max-height:88vh; display:flex; flex-direction:column; background:var(--white); border-radius:16px; overflow:hidden; box-shadow:0 18px 48px rgba(0,0,0,0.22); }
+  .pp-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1.5px solid var(--border); }
+  .pp-head strong { color:var(--text-main); font-size:15px; }
+  .pp-head button { background:none; border:none; cursor:pointer; font-size:18px; color:var(--text-muted); line-height:1; }
+  .pp-search { padding:12px 18px; border-bottom:1px solid var(--border); }
+  .pp-search input { width:100%; box-sizing:border-box; padding:10px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; color:var(--text-main); outline:none; font-family:inherit; }
+  .pp-search input:focus { border-color:#7E9580; box-shadow:0 0 0 3px rgba(126,149,128,0.18); }
+  .pp-note { margin:0; padding:10px 18px; font-size:12.5px; color:#7a5a3a; background:#FBF3E7; border-bottom:1px solid var(--border); }
+  .pp-note code { background:rgba(0,0,0,0.06); padding:1px 5px; border-radius:5px; }
+  .pp-grid { padding:14px 18px; overflow-y:auto; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .pp-thumb { padding:0; border:2px solid transparent; border-radius:10px; overflow:hidden; cursor:pointer; background:#E2E7DB; aspect-ratio:4/3; display:block; transition:border-color .15s, transform .15s; }
+  .pp-thumb:hover { border-color:#7E9580; transform:translateY(-2px); }
+  .pp-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .pp-empty { grid-column:1/-1; text-align:center; color:var(--text-muted); font-size:14px; padding:30px 10px; line-height:2; }
+  @media(max-width:560px){ .pp-grid { grid-template-columns:repeat(2,1fr); } }
 </style>
 </head>
 <body>
@@ -2588,6 +2619,8 @@ async function generateVariants(sujet, fmt){
   state.variantOriginals=state.currentVariants.map(v=>v.contenu);
   state.selectedVariantIdx=0;
   state.genRowId=null;
+  // Réinitialise la photo pour cette nouvelle génération
+  state.currentPhoto=null; state.currentPhotoResults=[]; state.currentVisualKeywords=[]; state.photoLoading=false;
   // Enregistre la variante sélectionnée (par défaut la 1ère) dans generated_contents
   const first=state.currentVariants[0];
   if(first && hasUnresolvedPlaceholder(first.contenu)){
@@ -2600,6 +2633,7 @@ async function generateVariants(sujet, fmt){
   }
   loader(false);
   renderVariants();
+  suggestPhotoForCurrentPost();   // suggestion auto d'une photo (canaux visuels)
   updateCoherenceScore();
   loadHistorique();
   if(!onboardingState.step3) completeOnboardingStep(3);
@@ -3215,6 +3249,7 @@ function renderPreview(){
         <div class="preview-info"><div class="preview-name">${e(prenom)} <span class="preview-subtitle">· Brandly</span></div><div class="preview-time">À l'instant · 🌐</div></div>
         <div class="preview-follow">+ Suivre</div></div>
       <div class="preview-body">${e(txt)}</div>
+      ${photoAreaMarkup()}
       <div class="preview-stats"><span>👍 Vous et 47 autres · 12 commentaires</span><span>3 republications</span></div>
       <div class="preview-actions"><span>👍 J'aime</span><span>💬 Commenter</span><span>🔁 Republier</span><span>📤 Envoyer</span></div></div>`;
   } else if(ch==='Instagram'){
@@ -3222,7 +3257,7 @@ function renderPreview(){
       <div class="preview-header"><div class="preview-avatar preview-avatar-ig">${e(initial)}</div>
         <div><div class="preview-name">${e(handle)}</div><div class="preview-subtitle">Brandly</div></div>
         <div class="preview-more" style="margin-left:auto">···</div></div>
-      <div class="preview-image-placeholder">🖼️<span>Photo / visuel du post</span></div>
+      ${photoAreaMarkup()}
       <div style="display:flex; padding:10px 16px; font-size:18px"><span>🤍 💬 📤</span><span style="margin-left:auto">🔖</span></div>
       <div style="padding:0 16px; font-size:14px; color:var(--text-main)"><strong>248 j'aime</strong></div>
       <div style="padding:6px 16px 16px; font-size:14px; line-height:1.6; white-space:pre-wrap; color:var(--text-main)"><strong>${e(handle)}</strong> ${e(txt)}</div></div>`;
@@ -3246,13 +3281,13 @@ function renderPreview(){
         <div><div class="preview-name">${e(prenom)}</div><div class="preview-time">À l'instant · 🌐</div></div>
         <div class="preview-more" style="margin-left:auto">···</div></div>
       <div class="preview-body">${e(txt)}</div>
-      <div class="preview-image-placeholder">🖼️<span>Photo / visuel du post</span></div>
+      ${photoAreaMarkup()}
       <div class="preview-fb-stats"><span>👍 ❤️ 😮 · 47</span><span>12 commentaires · 3 partages</span></div>
       <div class="preview-fb-actions"><span>👍 J'aime</span><span>💬 Commenter</span><span>↗ Partager</span></div></div>`;
   } else {
     html=`<div class="post-preview"><div class="preview-body">${e(txt)}</div></div>`;
   }
-  host.innerHTML=badge+html;
+  host.innerHTML=badge+html+(isVisualChannel(ch)?photoControlsMarkup():'');
 }
 function renderResult(format,contenu){
   const div=document.createElement('div');
@@ -3595,6 +3630,174 @@ async function callCalendar(brand,periode,reseaux,freq){
     items.push({ date:`J+${jour}`, reseau, sujet:sujets[i%sujets.length], angle:angles[i%angles.length] });
   }
   return items;
+}
+
+/* =========================================================================
+   PHOTOS DES POSTS — banque d'images (Pexels via Edge Function sécurisée)
+   La clé PEXELS_API_KEY reste côté serveur (secret Supabase). Sans fonction/clé,
+   fallback propre : visuels de démonstration sauge (jamais de crash).
+   ========================================================================= */
+const PHOTOS_ENDPOINT = SUPABASE_URL + '/functions/v1/search-photos';
+const photoCache = new Map();      // cache session : query(lower) -> [photos normalisées]
+let photosAvailable = true;        // false si la fonction/clé est absente
+let ppResults = [];                // résultats courants dans la modale de sélection
+
+function debounce(fn, ms){ let t; return function(){ const a=arguments; clearTimeout(t); t=setTimeout(function(){ fn.apply(null,a); }, ms); }; }
+function isVisualChannel(ch){ return ch==='LinkedIn' || ch==='Instagram' || ch==='Facebook'; }
+
+// Mots-clés visuels (EN) — en démo, dérivés localement (pas de vrai LLM).
+// En mode réel, l'Edge Function IA renverra { contenu, visual_keywords:[...] }.
+function visualKeywords(brand, sujet, format){
+  const sector=((brand&&brand.secteur)||'').toLowerCase();
+  const SECT={ restaurant:'restaurant food', mode:'fashion style', beauté:'beauty cosmetics', beaute:'beauty cosmetics', tech:'technology workspace', informatique:'technology workspace', immobilier:'real estate home', santé:'health wellness', sante:'health wellness', sport:'sport fitness', voyage:'travel landscape', tourisme:'travel landscape', éducation:'education learning', education:'education learning', formation:'education learning', finance:'finance business', marketing:'marketing office', communication:'creative office', artisanat:'craft handmade', agence:'creative team office', café:'coffee cafe', cafe:'coffee cafe' };
+  const THEME={ équipe:'team', equipe:'team', client:'customer', produit:'product', lancement:'product launch', événement:'event', evenement:'event', astuce:'workspace tips', coulisses:'behind the scenes', recrutement:'office team', conseil:'meeting advice' };
+  const out=[];
+  for(const k in SECT){ if(sector.indexOf(k)!==-1){ out.push.apply(out, SECT[k].split(' ')); break; } }
+  const sl=(sujet||'').toLowerCase();
+  for(const k in THEME){ if(sl.indexOf(k)!==-1){ out.push(THEME[k]); break; } }
+  if(!out.length) out.push('business','workspace','minimal');
+  return out.filter(function(w,i,a){ return w && a.indexOf(w)===i; }).slice(0,3);
+}
+
+// Visuels de démonstration (data-URI SVG sauge) — aucun appel réseau, jamais de crash.
+function fallbackPhotos(q){
+  const label=(q||'visuel').slice(0,22);
+  const mk=function(big){ const w=big?1200:400, h=big?800:300;
+    const svg="<svg xmlns='http://www.w3.org/2000/svg' width='"+w+"' height='"+h+"'>"
+      +"<rect width='100%' height='100%' fill='#DDE3D6'/>"
+      +"<circle cx='"+(w*0.5)+"' cy='"+(h*0.42)+"' r='"+(h*0.16)+"' fill='none' stroke='#7E9580' stroke-width='"+(h*0.03)+"'/>"
+      +"<text x='50%' y='"+(h*0.78)+"' font-family='Quicksand,Montserrat,sans-serif' font-size='"+(big?40:18)+"' fill='#5f7358' text-anchor='middle'>"+label+"</text></svg>";
+    return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg); };
+  return Array.from({length:6}).map(function(_,i){ return {
+    id:'demo-'+i, placeholder:true,
+    url_small:mk(false), url_large:mk(true),
+    photographer:'Visuel de démonstration', photographer_url:'#',
+    alt:'Visuel de démonstration pour « '+(q||'')+' »'
+  }; });
+}
+
+// Appel du proxy serveur (jamais Pexels en direct). Cache session + fallback.
+async function searchPhotos(query){
+  const q=String(query||'').trim(); if(!q) return [];
+  const key=q.toLowerCase();
+  if(photoCache.has(key)) return photoCache.get(key);
+  let res;
+  try{
+    let token=SUPABASE_KEY;
+    try{ const s=await db.auth.getSession(); if(s&&s.data&&s.data.session) token=s.data.session.access_token; }catch(_){}
+    const r=await fetch(PHOTOS_ENDPOINT+'?query='+encodeURIComponent(q)+'&per_page=12',
+      { headers:{ 'Authorization':'Bearer '+token, 'apikey':SUPABASE_KEY } });
+    if(!r.ok) throw new Error('http '+r.status);
+    const j=await r.json();
+    if(j && j.ok && Array.isArray(j.photos) && j.photos.length){ photosAvailable=true; res=j.photos; }
+    else { if(j && j.reason==='missing_key') photosAvailable=false; res=fallbackPhotos(q); }
+  }catch(e){ photosAvailable=false; res=fallbackPhotos(q); }
+  photoCache.set(key, res);
+  return res;
+}
+
+// ---- Rendu de la photo dans l'aperçu ----
+function photoAreaMarkup(){
+  const e=escapeHtml;
+  if(state.photoLoading) return "<div class='post-photo post-photo--skeleton'><div class='ph-skel'></div></div>";
+  const p=state.currentPhoto;
+  if(p){
+    const credit = (p.photographer && p.photographer_url && p.photographer_url!=='#')
+      ? "<a class='post-photo-credit' href='"+e(p.photographer_url)+"' target='_blank' rel='noopener'>📷 "+e(p.photographer)+"</a>"
+      : (p.photographer ? "<span class='post-photo-credit'>"+e(p.photographer)+"</span>" : "");
+    return "<div class='post-photo'><img class='post-photo-img' src='"+e(p.url_large)+"' alt='"+e(p.alt||'')+"' loading='lazy'/>"+credit+"</div>";
+  }
+  return "<div class='preview-image-placeholder'>🖼️<span>Aucune photo — cliquez « Changer la photo »</span></div>";
+}
+function photoControlsMarkup(){
+  if(state.photoLoading) return "<div class='photo-controls'><span class='small'>Recherche d'une photo…</span></div>";
+  const note = photosAvailable ? "" : "<span class='small' style='color:var(--text-muted)'>Banque d'images non connectée — visuel de démo</span>";
+  return "<div class='photo-controls'><button class='btn-secondary btn-sm' onclick='openPhotoPicker()'>🖼️ Changer la photo</button>"+note+"</div>";
+}
+
+// ---- Suggestion automatique à l'affichage du post ----
+async function suggestPhotoForCurrentPost(){
+  if(!isVisualChannel(state.currentChannel)){ state.currentPhoto=null; return; }
+  const kws=visualKeywords(state.selectedBrand, (state.genContext&&state.genContext.sujet)||'', (state.genContext&&state.genContext.fmt)||'');
+  state.currentVisualKeywords=kws;
+  state.currentPhotoQuery=kws[0]||'';
+  if(!state.currentPhotoQuery){ state.currentPhoto=null; renderPreview(); return; }
+  state.photoLoading=true; renderPreview();
+  const res=await searchPhotos(state.currentPhotoQuery);
+  state.currentPhotoResults=res;
+  state.currentPhoto=res[0]||null;
+  state.photoLoading=false;
+  renderPreview();
+  persistPhoto();
+}
+
+// ---- Persistance (colonne image jsonb de generated_contents) ----
+async function persistPhoto(){
+  if(!state.genRowId) return;
+  const p=state.currentPhoto;
+  const image = p ? { id:p.id, url_small:p.url_small, url_large:p.url_large, photographer:p.photographer, photographer_url:p.photographer_url, alt:p.alt, placeholder:!!p.placeholder } : null;
+  try{ await db.from('generated_contents').update({ image:image }).eq('id',state.genRowId); }catch(e){}
+}
+
+// ---- Sélecteur de photo (modale : grille + recherche libre, debounce) ----
+function ensurePhotoPicker(){
+  if(document.getElementById('photo-picker-overlay')) return;
+  const wrap=document.createElement('div');
+  wrap.innerHTML="<div id='photo-picker-overlay' class='pp-overlay' style='display:none' onclick='if(event.target===this)closePhotoPicker()'>"
+    +"<div class='pp-modal' role='dialog' aria-label='Choisir une photo'>"
+    +"<div class='pp-head'><strong>🖼️ Choisir une photo</strong><button onclick='closePhotoPicker()' aria-label='Fermer'>✕</button></div>"
+    +"<div class='pp-search'><input id='pp-input' type='text' placeholder='Rechercher une image (mot-clé en anglais conseillé)…' autocomplete='off'/></div>"
+    +"<div id='pp-note' class='pp-note' style='display:none'></div>"
+    +"<div id='pp-grid' class='pp-grid'></div>"
+    +"</div></div>";
+  document.body.appendChild(wrap.firstElementChild);
+  const inp=document.getElementById('pp-input');
+  inp.addEventListener('input', debounce(function(){ runPhotoSearch(inp.value); }, 450));
+  inp.addEventListener('keydown', function(ev){ if(ev.key==='Escape') closePhotoPicker(); });
+}
+function openPhotoPicker(){
+  ensurePhotoPicker();
+  document.getElementById('photo-picker-overlay').style.display='flex';
+  const inp=document.getElementById('pp-input');
+  inp.value=state.currentPhotoQuery||'';
+  updatePpNote();
+  if(state.currentPhotoResults && state.currentPhotoResults.length){ ppResults=state.currentPhotoResults; renderPhotoGrid(ppResults,{}); }
+  else { runPhotoSearch(inp.value); }
+  setTimeout(function(){ inp.focus(); }, 30);
+}
+function closePhotoPicker(){ const ov=document.getElementById('photo-picker-overlay'); if(ov) ov.style.display='none'; }
+function updatePpNote(){
+  const n=document.getElementById('pp-note'); if(!n) return;
+  if(photosAvailable){ n.style.display='none'; return; }
+  n.style.display='block';
+  n.innerHTML="Banque d'images non connectée — affichage de <strong>visuels de démonstration</strong>. Pour de vraies photos, configurez <code>PEXELS_API_KEY</code> (voir <code>supabase/functions/search-photos/README.md</code>).";
+}
+async function runPhotoSearch(q){
+  q=String(q||'').trim();
+  if(!q){ renderPhotoGrid([], {q:''}); return; }
+  renderPhotoGrid(null, {loading:true});
+  const res=await searchPhotos(q);
+  ppResults=res; updatePpNote();
+  renderPhotoGrid(res, {q:q});
+}
+function renderPhotoGrid(items, opts){
+  opts=opts||{}; const g=document.getElementById('pp-grid'); if(!g) return;
+  if(opts.loading){ g.innerHTML=Array.from({length:9}).map(function(){ return "<div class='pp-thumb pp-skel'></div>"; }).join(''); return; }
+  if(!items || !items.length){
+    g.innerHTML="<div class='pp-empty'>Aucun résultat"+(opts.q?" pour « "+escapeHtml(opts.q)+" »":"")+".<br>Essayez un autre mot-clé.</div>";
+    return;
+  }
+  g.innerHTML=items.map(function(p,i){ return "<button class='pp-thumb' data-i='"+i+"' title='"+escapeHtml(p.photographer||'')+"'><img src='"+escapeHtml(p.url_small)+"' alt='"+escapeHtml(p.alt||'')+"' loading='lazy'/></button>"; }).join('');
+  g.querySelectorAll('.pp-thumb[data-i]').forEach(function(b){ b.onclick=function(){ selectPhotoFromGrid(+b.getAttribute('data-i')); }; });
+}
+function selectPhotoFromGrid(i){
+  const p=ppResults[i]; if(!p) return;
+  state.currentPhoto=p;
+  const inp=document.getElementById('pp-input'); if(inp && inp.value.trim()) state.currentPhotoQuery=inp.value.trim();
+  closePhotoPicker();
+  renderPreview();
+  persistPhoto();
+  showToast('Photo mise à jour ✓','ok');
 }
 
 /* =========================================================================
