@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Brief to Brand — La mémoire de marque de vos contenus</title>
+<title>Brandly — La mémoire de marque de vos contenus</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,800;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -521,7 +521,7 @@
 <div id="view-landing" class="view active">
   <header class="site-header">
     <div class="container inner">
-      <div class="logo"><span class="dot"></span> Brief to Brand</div>
+      <div class="logo"><span class="dot"></span> Brandly</div>
       <div class="row">
         <button class="btn-ghost" onclick="showAuth('login')">Connexion</button>
         <button class="btn-primary btn-sm" onclick="showAuth('signup')">Essai gratuit 7 jours</button>
@@ -535,7 +535,7 @@
       <div class="hero-text">
         <span class="hero-badge">🍋 Générez. Mémorisez. Publiez.</span>
         <h1>Générez du contenu qui sonne <em>vraiment</em> comme votre marque.</h1>
-        <p class="hero-sub">Brief to Brand mémorise la voix de chaque marque et génère du contenu cohérent en 10 secondes.</p>
+        <p class="hero-sub">Brandly mémorise la voix de chaque marque et génère du contenu cohérent en 10 secondes.</p>
         <div class="hero-cta">
           <button class="btn-primary" onclick="showAuth('signup')">Commencer gratuitement</button>
           <button class="btn-secondary" onclick="document.getElementById('section-solution').scrollIntoView({behavior:'smooth'})">Voir comment ça marche</button>
@@ -629,14 +629,14 @@
     </div>
   </section>
 
-  <footer class="site">Brief to Brand © 2026 — Fait en France 🇫🇷</footer>
+  <footer class="site">Brandly © 2026 — Fait en France 🇫🇷</footer>
 </div>
 
 <!-- ============ VIEW: AUTH ============ -->
 <div id="view-auth" class="view">
   <div class="auth-wrap">
     <div class="auth-card card">
-      <div class="logo" style="justify-content:center;margin-bottom:20px;"><span class="dot"></span> Brief to Brand</div>
+      <div class="logo" style="justify-content:center;margin-bottom:20px;"><span class="dot"></span> Brandly</div>
       <div class="auth-tabs">
         <button id="tab-signup" class="active" onclick="switchAuth('signup')">Inscription</button>
         <button id="tab-login" onclick="switchAuth('login')">Connexion</button>
@@ -666,7 +666,7 @@
 <div id="view-dashboard" class="view">
   <div class="dash-header">
     <button class="burger-btn" onclick="toggleMobileSidebar()" aria-label="Menu">☰</button>
-    <div class="logo"><span class="dot"></span> Brief to Brand</div>
+    <div class="logo"><span class="dot"></span> Brandly</div>
     <div class="header-nav">
       <div class="header-nav-pill" id="hnav-brand-memory" onclick="showSection('brand-memory'); setHeaderPill('brand-memory')">🧠 Brand Memory</div>
       <div class="header-nav-pill" id="hnav-calendar" onclick="showSection('calendar'); setHeaderPill('calendar')">📅 Calendrier<span id="today-reminder-badge" style="display:none; font-size:11px; background:#C0392B; color:#fff; border-radius:10px; padding:1px 7px; font-weight:600; margin-left:6px"></span></div>
@@ -695,7 +695,7 @@
   <div id="onboarding-bar" style="display:none; background:var(--white); border-bottom:1.5px solid var(--border); padding:16px 32px">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px">
       <div>
-        <div style="font-size:14px; font-weight:600; color:var(--text-main)">🎯 Configurez Brief to Brand en 3 étapes</div>
+        <div style="font-size:14px; font-weight:600; color:var(--text-main)">🎯 Configurez Brandly en 3 étapes</div>
         <div class="small" id="onboarding-subtitle" style="margin-top:2px">Complétez ces étapes pour générer votre premier contenu.</div>
       </div>
       <button onclick="dismissOnboarding()" style="background:none; border:none; cursor:pointer; font-size:18px; color:var(--text-muted); padding:4px 8px">✕</button>
@@ -1219,7 +1219,7 @@
 <!-- ============ VIEW: BRAND EDITOR ============ -->
 <div id="view-brand-editor" class="view">
   <div class="dash-header">
-    <div class="logo"><span class="dot"></span> Brief to Brand</div>
+    <div class="logo"><span class="dot"></span> Brandly</div>
     <button class="btn-secondary btn-sm" onclick="showDashboard()">← Retour au dashboard</button>
   </div>
   <div class="container" style="max-width:680px;padding-top:36px;padding-bottom:60px">
@@ -1500,7 +1500,7 @@ function showOnboardingComplete(){
     <div style="display:flex; align-items:center; gap:14px">
       <div style="font-size:28px">🎉</div>
       <div>
-        <div style="font-size:15px; font-weight:700; color:var(--text-main)">Vous êtes prêt ! Brief to Brand est configuré.</div>
+        <div style="font-size:15px; font-weight:700; color:var(--text-main)">Vous êtes prêt ! Brandly est configuré.</div>
         <div class="small" style="margin-top:2px">Votre Brand Memory est active — générez du contenu en quelques secondes.</div>
       </div>
     </div>
@@ -2187,7 +2187,7 @@ async function checkShareMode(){
   const chips=(items,bg,col)=>arr(items).map(m=>`<span style="background:${bg};color:${col};border-radius:20px;padding:4px 12px;font-size:12px;font-weight:500">${e(m)}</span>`).join('')||'—';
   document.body.innerHTML=`<div style="min-height:100vh;background:#FAF0E8;font-family:Inter,sans-serif;color:#1A1A1A">
     <div style="background:#FAF0E8;border-bottom:1px solid #EDE8D8;padding:0 40px;height:64px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-weight:800;font-size:18px;font-family:Fraunces,serif">✦ Brief to Brand</div>
+      <div style="font-weight:800;font-size:18px;font-family:Fraunces,serif">✦ Brandly</div>
       <div style="font-size:13px;color:#6B6560">Vue partagée · Lecture seule</div>
     </div>
     <div style="max-width:800px;margin:0 auto;padding:40px 20px">
@@ -2219,7 +2219,7 @@ async function checkShareMode(){
           <div style="display:flex;flex-wrap:wrap;gap:6px">${chips(bm.valeurs,'#EDFAF2','#2A8050')}</div>
         </div>
       </div>
-      <div style="text-align:center;margin-top:40px;font-size:13px;color:#6B6560">Créé avec <strong>Brief to Brand</strong> · La mémoire de marque IA</div>
+      <div style="text-align:center;margin-top:40px;font-size:13px;color:#6B6560">Créé avec <strong>Brandly</strong> · La mémoire de marque IA</div>
     </div>
   </div>`;
   return true;
@@ -3138,7 +3138,7 @@ function renderPreview(){
     const lines=txt.split('\n').filter(l=>l.trim());
     const title=lines[0]||'Article';
     const body=lines.slice(1).join('\n');
-    host.innerHTML=`${badge}<div class="article-preview"><div class="article-title">${e(title)}</div><div class="article-meta">${e(prenom)} · Brief to Brand · 5 min de lecture</div><div class="article-body">${e(body)}</div></div>`;
+    host.innerHTML=`${badge}<div class="article-preview"><div class="article-title">${e(title)}</div><div class="article-meta">${e(prenom)} · Brandly · 5 min de lecture</div><div class="article-body">${e(body)}</div></div>`;
     return;
   }
   if(fmt.includes('story')){
@@ -3150,7 +3150,7 @@ function renderPreview(){
   if(ch==='LinkedIn'){
     html=`<div class="post-preview linkedin-preview">
       <div class="preview-header"><div class="preview-avatar">${e(initial)}</div>
-        <div class="preview-info"><div class="preview-name">${e(prenom)} <span class="preview-subtitle">· Brief to Brand</span></div><div class="preview-time">À l'instant · 🌐</div></div>
+        <div class="preview-info"><div class="preview-name">${e(prenom)} <span class="preview-subtitle">· Brandly</span></div><div class="preview-time">À l'instant · 🌐</div></div>
         <div class="preview-follow">+ Suivre</div></div>
       <div class="preview-body">${e(txt)}</div>
       <div class="preview-stats"><span>👍 Vous et 47 autres · 12 commentaires</span><span>3 republications</span></div>
@@ -3158,7 +3158,7 @@ function renderPreview(){
   } else if(ch==='Instagram'){
     html=`<div class="post-preview instagram-preview">
       <div class="preview-header"><div class="preview-avatar preview-avatar-ig">${e(initial)}</div>
-        <div><div class="preview-name">${e(handle)}</div><div class="preview-subtitle">Brief to Brand</div></div>
+        <div><div class="preview-name">${e(handle)}</div><div class="preview-subtitle">Brandly</div></div>
         <div class="preview-more" style="margin-left:auto">···</div></div>
       <div class="preview-image-placeholder">🖼️<span>Photo / visuel du post</span></div>
       <div style="display:flex; padding:10px 16px; font-size:18px"><span>🤍 💬 📤</span><span style="margin-left:auto">🔖</span></div>
@@ -3167,10 +3167,10 @@ function renderPreview(){
   } else if(ch==='Email'){
     const words=txt.split(/\s+/).filter(Boolean).slice(0,8).join(' ');
     html=`<div class="post-preview email-preview">
-      <div class="email-header-bar"><div>De : ${e(prenom)} · Brief to Brand</div><div>Objet : ${e(words)}…</div></div>
+      <div class="email-header-bar"><div>De : ${e(prenom)} · Brandly</div><div>Objet : ${e(words)}…</div></div>
       <div class="email-body"><div class="email-greeting">Bonjour ${e(prenom)},</div>
         <div class="email-content">${e(txt)}</div>
-        <div class="email-signature">— ${e(prenom)}<br><span style="font-size:12px;opacity:0.7">Brief to Brand</span></div></div></div>`;
+        <div class="email-signature">— ${e(prenom)}<br><span style="font-size:12px;opacity:0.7">Brandly</span></div></div></div>`;
   } else if(ch==='X'){
     html=`<div class="post-preview twitter-preview">
       <div class="preview-header"><div class="preview-avatar">${e(initial)}</div>
@@ -3252,7 +3252,7 @@ function exportCalendarPDF(){
   doc.setFillColor(...bg); doc.rect(0,0,210,297,'F');
   doc.setFillColor(...accent); doc.rect(0,0,210,8,'F');
   doc.setFont('helvetica','bold'); doc.setFontSize(28); doc.setTextColor(...dark);
-  doc.text('Brief to Brand',20,50);
+  doc.text('Brandly',20,50);
   doc.setFont('helvetica','normal'); doc.setFontSize(14); doc.setTextColor(...gray);
   doc.text('Calendrier éditorial',20,62);
   doc.setDrawColor(...border); doc.setLineWidth(0.5); doc.line(20,72,190,72);
@@ -3263,7 +3263,7 @@ function exportCalendarPDF(){
   if(state.selectedBrand && state.selectedBrand.secteur){ doc.text('Secteur : '+state.selectedBrand.secteur,20,115); }
   doc.text(items.length+' publication(s) planifiée(s)',20,130);
   doc.setFillColor(...accent); doc.rect(0,289,210,8,'F');
-  doc.setFontSize(9); doc.setTextColor(255,255,255); doc.text('Brief to Brand',20,294.5);
+  doc.setFontSize(9); doc.setTextColor(255,255,255); doc.text('Brandly',20,294.5);
 
   // ── Pages de contenu ──
   doc.addPage();
