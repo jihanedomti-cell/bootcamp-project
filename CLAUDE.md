@@ -82,6 +82,13 @@ libre). La photo est mémorisée avec le post (`generated_contents.image`).
    `state.genContext`. Données via `trendsProvider` (mock déterministe par marque, packs
    sectoriels) : remplacer `mockTrends` par une vraie source (écoute sociale / Google
    Trends) sans toucher au reste. (L'ancienne bibliothèque de Templates a été retirée.)
+   **Onboarding chaleureux** (ton fun + emojis) : modale de bienvenue au 1er login
+   (`#welcome-overlay`, une seule fois, skippable), toast de retour pour les habitués,
+   empty states guidants (aucune marque → créer ; marque sans post → bannière
+   `#first-post-guide` vers le générateur), et micro-célébrations (`celebrate()`,
+   `#celebrate-pop`) à la 1ère marque (`beSave`) et au 1er post (`generateVariants`).
+   La progression est persistée dans `onboardingState` (localStorage, comme la barre
+   3 étapes `#onboarding-bar` conservée). `prefers-reduced-motion` respecté.
 4. **Éditeur de marque** — assistant en 3 étapes :
    - Étape 1 : infos de base (nom, secteur, site, couleur).
    - Étape 2 : **upload de documents** par drag & drop (.pdf, .doc, .docx, .txt,
