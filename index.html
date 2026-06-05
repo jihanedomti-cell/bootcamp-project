@@ -3637,7 +3637,7 @@ async function callCalendar(brand,periode,reseaux,freq){
    La clé PEXELS_API_KEY reste côté serveur (secret Supabase). Sans fonction/clé,
    fallback propre : visuels de démonstration sauge (jamais de crash).
    ========================================================================= */
-const PHOTOS_ENDPOINT = SUPABASE_URL + '/functions/v1/search-photos';
+const PHOTOS_ENDPOINT = SUPABASE_URL + '/functions/v1/Search-photos';
 const photoCache = new Map();      // cache session : query(lower) -> [photos normalisées]
 let photosAvailable = true;        // false si la fonction/clé est absente
 let ppResults = [];                // résultats courants dans la modale de sélection
