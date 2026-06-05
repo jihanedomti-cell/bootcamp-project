@@ -707,6 +707,28 @@
   .an-skel-lg{ height:30px; width:60%; }
   .an-skel-chart{ height:300px; width:100%; border-radius:10px; }
   @keyframes anShimmer{ 0%{ background-position:100% 50%; } 100%{ background-position:0 50%; } }
+
+  /* ===== Trends (tendances) ===== */
+  .trends-subtabs{ display:flex; gap:6px; margin-bottom:22px; border-bottom:1.5px solid var(--border); }
+  .trends-subtab{ padding:10px 16px; border:none; background:none; border-bottom:2px solid transparent; margin-bottom:-1.5px; font-size:14px; font-weight:600; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:7px; transition:color .15s ease, border-color .15s ease; }
+  .trends-subtab:hover{ color:var(--text-main); }
+  .trends-subtab.active{ color:var(--green); border-bottom-color:var(--green); }
+  .trends-subtab.secondary{ font-weight:500; }
+  .trend-filters{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+  .trend-filter-label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); margin-right:2px; }
+  .trends-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; margin-top:18px; }
+  .trend-card{ background:var(--white); border:1.5px solid var(--border); border-radius:14px; padding:18px 18px 16px; display:flex; flex-direction:column; gap:11px; transition:transform .15s ease, box-shadow .15s ease; }
+  .trend-card:hover{ transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.07); }
+  .trend-badge{ display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:3px 9px; border-radius:999px; }
+  .trend-title{ font-size:15px; font-weight:700; color:var(--text-main); line-height:1.3; }
+  .trend-desc{ font-size:13px; color:var(--text-muted); line-height:1.55; }
+  .trend-momentum{ display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:700; white-space:nowrap; }
+  .trend-angle{ font-size:12px; color:var(--text-muted); font-style:italic; border-left:2px solid #E8957A; padding-left:9px; line-height:1.5; }
+  .trend-nets{ display:flex; flex-wrap:wrap; gap:6px; }
+  .trend-net{ font-size:11px; font-weight:600; color:var(--text-muted); background:var(--bg-section,#F4F2EA); border:1px solid var(--border); border-radius:999px; padding:2px 9px; }
+  .trend-score-bar{ height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
+  .trend-score-fill{ height:100%; border-radius:3px; background:var(--green); }
+  .trend-gen-btn{ margin-top:2px; width:100%; }
 </style>
 </head>
 <body>
@@ -930,7 +952,7 @@
           <a class="brand-item" data-channel="Email"     onclick="navChannel('Email',this)"><span>✉</span><span>Email</span></a>
           <a class="brand-item" data-channel="X"         onclick="navChannel('X',this)"><span>𝕏</span><span>X / Twitter</span></a>
           <a class="brand-item" data-channel="Facebook"  onclick="navChannel('Facebook',this)"><span>f</span><span>Facebook</span></a>
-          <a class="brand-item" id="nav-templates" onclick="navTo('templates',this)"><span>📋</span><span>Templates</span></a>
+          <a class="brand-item" id="nav-trends" onclick="navTo('trends',this)"><span>📈</span><span>Trends</span></a>
         </div>
 
         <div class="side-sep"></div>
@@ -1142,25 +1164,59 @@
           <div id="historique-list" style="display:flex; flex-direction:column; gap:12px"></div>
         </div>
 
-        <!-- TAB: Bibliothèque de templates -->
-        <div id="panel-templates" class="tab-panel">
-          <div class="row" style="justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px">
+        <!-- TAB: Trends (tendances) — écran principal ; Templates en sous-section -->
+        <div id="panel-trends" class="tab-panel">
+          <div class="row" style="justify-content:space-between; align-items:flex-start; margin-bottom:16px; flex-wrap:wrap; gap:12px">
             <div>
-              <h3 style="margin-bottom:4px">📋 Bibliothèque de templates</h3>
-              <p class="small">14 structures prêtes — adaptées en 1 clic au ton de <strong id="templates-brand-name"></strong>.</p>
+              <h3 style="margin-bottom:4px">📈 Tendances</h3>
+              <p class="small" id="trends-subtitle">Les tendances qui comptent pour votre secteur, prêtes à transformer en posts.</p>
             </div>
           </div>
-          <div style="display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap" id="template-filters">
-            <button class="template-filter active" data-canal="tous" onclick="filterTemplates('tous')">Tous</button>
-            <button class="template-filter" data-canal="LinkedIn" onclick="filterTemplates('LinkedIn')">💼 LinkedIn</button>
-            <button class="template-filter" data-canal="Instagram" onclick="filterTemplates('Instagram')">📸 Instagram</button>
-            <button class="template-filter" data-canal="Email" onclick="filterTemplates('Email')">✉️ Email</button>
-            <button class="template-filter" data-canal="X / Twitter" onclick="filterTemplates('X / Twitter')">🐦 X</button>
-            <button class="template-filter" data-canal="Facebook" onclick="filterTemplates('Facebook')">👥 Facebook</button>
-          </div>
-          <div id="templates-grid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px"></div>
 
-          <!-- Modal d'adaptation -->
+          <div class="trends-subtabs">
+            <button class="trends-subtab active" id="subtab-tendances" onclick="setTrendsTab('tendances')"><span>📈</span> Tendances</button>
+            <button class="trends-subtab secondary" id="subtab-templates" onclick="setTrendsTab('templates')"><span>📋</span> Templates</button>
+          </div>
+
+          <!-- Sous-section : Tendances -->
+          <div id="trends-sub-tendances">
+            <div class="trend-filters">
+              <span class="trend-filter-label">Catégorie</span>
+              <button class="template-filter active" data-tcat="tous" onclick="setTrendCat('tous',this)">Toutes</button>
+              <button class="template-filter" data-tcat="sujet" onclick="setTrendCat('sujet',this)">Sujet</button>
+              <button class="template-filter" data-tcat="format" onclick="setTrendCat('format',this)">Format</button>
+              <button class="template-filter" data-tcat="hashtag" onclick="setTrendCat('hashtag',this)">Hashtag</button>
+            </div>
+            <div class="trend-filters" style="margin-bottom:0">
+              <span class="trend-filter-label">Momentum</span>
+              <button class="template-filter active" data-tmom="tous" onclick="setTrendMom('tous',this)">Tous</button>
+              <button class="template-filter" data-tmom="montant" onclick="setTrendMom('montant',this)">↗ Montant</button>
+              <button class="template-filter" data-tmom="chaud" onclick="setTrendMom('chaud',this)">🔥 Chaud</button>
+              <button class="template-filter" data-tmom="stable" onclick="setTrendMom('stable',this)">→ Stable</button>
+            </div>
+            <div id="trends-grid" class="trends-grid"></div>
+          </div>
+
+          <!-- Sous-section : Templates (secondaire — markup existant relocalisé) -->
+          <div id="trends-sub-templates" style="display:none">
+            <div class="row" style="justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:12px">
+              <div>
+                <h4 style="margin:0 0 4px; font-size:16px">📋 Bibliothèque de templates</h4>
+                <p class="small">14 structures prêtes — adaptées en 1 clic au ton de <strong id="templates-brand-name"></strong>.</p>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap" id="template-filters">
+              <button class="template-filter active" data-canal="tous" onclick="filterTemplates('tous')">Tous</button>
+              <button class="template-filter" data-canal="LinkedIn" onclick="filterTemplates('LinkedIn')">💼 LinkedIn</button>
+              <button class="template-filter" data-canal="Instagram" onclick="filterTemplates('Instagram')">📸 Instagram</button>
+              <button class="template-filter" data-canal="Email" onclick="filterTemplates('Email')">✉️ Email</button>
+              <button class="template-filter" data-canal="X / Twitter" onclick="filterTemplates('X / Twitter')">🐦 X</button>
+              <button class="template-filter" data-canal="Facebook" onclick="filterTemplates('Facebook')">👥 Facebook</button>
+            </div>
+            <div id="templates-grid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px"></div>
+          </div>
+
+          <!-- Modal d'adaptation (templates) -->
           <div id="template-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; align-items:center; justify-content:center">
             <div class="card" style="width:580px; max-width:95vw; max-height:85vh; overflow-y:auto">
               <div class="row" style="justify-content:space-between; margin-bottom:18px">
@@ -2156,7 +2212,7 @@ function navTo(name,el){
   if(name==='tone') renderToneChecker();
   if(name==='historique') loadHistorique();
   if(name==='analytics') loadAnalytics();
-  if(name==='templates') initTemplatesView();
+  if(name==='trends') initTrendsView();
   // Synchronise les pills du header
   const hmap={ memory:'brand-memory', calendar:'calendar', analytics:'analytics' };
   if(hmap[name]) setHeaderPill(hmap[name]);
@@ -2185,7 +2241,7 @@ function showSection(section){
   if(section==='brand-memory') navTo('memory', null);
   else if(section==='calendar') navTo('calendar', null);
   else if(section==='analytics') navTo('analytics', null);
-  else if(section==='templates') navTo('templates', null);
+  else if(section==='trends') navTo('trends', null);
 }
 /* ---- Paramètres (compte) ---- */
 function showSettings(){
@@ -2309,6 +2365,199 @@ async function loadPricingPage(){
     if(p===currentPlan){ btn.textContent='✓ Plan actuel'; btn.disabled=true; btn.style.opacity='0.6'; }
     else { btn.textContent='Commencer l\'essai gratuit'; btn.disabled=false; btn.style.opacity='1'; }
   });
+}
+
+/* =========================================================================
+   TRENDS — COUCHE DE DONNÉES (mock réaliste, isolée derrière trendsProvider)
+   Pour brancher une vraie source, remplacer mockTrends() dans getTrends() —
+   le reste du code ne bouge pas. (Réutilise aHashSeed/aMulberry32 de l'Analyse.)
+   ========================================================================= */
+const TREND_PACK_GENERIC=[
+  { title:"Contenu authentique & coulisses", category:'format', networks:['Instagram','TikTok','LinkedIn'], description:"Le behind-the-scenes performe mieux que le contenu trop léché.", suggestedAngle:"Montrez l'envers du décor d'une journée type." },
+  { title:"Carrousels éducatifs", category:'format', networks:['Instagram','LinkedIn'], description:"Les carrousels how-to génèrent beaucoup de sauvegardes.", suggestedAngle:"Décomposez votre expertise en 5 slides actionnables." },
+  { title:"Vidéos courtes (< 15s)", category:'format', networks:['Instagram','TikTok','X'], description:"Le format ultra-court maximise le taux de complétion.", suggestedAngle:"Une astuce condensée en une vidéo de 12 secondes." },
+  { title:"UGC : contenu créé par les clients", category:'sujet', networks:['Instagram','TikTok','Facebook'], description:"Le contenu authentique des clients convertit mieux que la pub.", suggestedAngle:"Mettez en avant un témoignage client en vidéo." },
+  { title:"#BehindTheBrand", category:'hashtag', networks:['Instagram','LinkedIn'], description:"Hashtag en hausse sur la transparence des marques.", suggestedAngle:"Racontez l'histoire et les valeurs derrière votre marque." },
+  { title:"Newsletter à forte valeur", category:'format', networks:['Email','LinkedIn'], description:"L'email curé revient en force face à la saturation des réseaux.", suggestedAngle:"Partagez 3 ressources utiles de la semaine." }
+];
+const TREND_PACKS={
+  mode:[
+    { title:"Body positivity & inclusivité", category:'sujet', networks:['Instagram','TikTok'], description:"L'inclusivité (morphologies, tailles) est au cœur des attentes.", suggestedAngle:"Célébrez toutes les morphologies avec un message inclusif." },
+    { title:"Quiet luxury", category:'sujet', networks:['Instagram','TikTok','Pinterest'], description:"L'esthétique minimaliste et intemporelle domine.", suggestedAngle:"Mettez en avant l'élégance discrète de vos pièces." },
+    { title:"Try-on hauls & UGC", category:'format', networks:['TikTok','Instagram'], description:"Les essayages filmés boostent fortement la conversion.", suggestedAngle:"Filmez un essayage de votre nouvelle collection." },
+    { title:"#OOTD", category:'hashtag', networks:['Instagram','TikTok'], description:"Outfit of the day reste un pilier d'engagement mode.", suggestedAngle:"Proposez un look du jour facile à recréer." },
+    { title:"Mode durable & seconde main", category:'sujet', networks:['Instagram','LinkedIn'], description:"La consommation responsable guide de plus en plus les achats.", suggestedAngle:"Expliquez votre démarche éco-responsable." }
+  ],
+  beaute:[
+    { title:"Skinimalism", category:'sujet', networks:['Instagram','TikTok'], description:"Routines minimalistes « moins mais mieux ».", suggestedAngle:"Présentez une routine soin en 3 produits." },
+    { title:"Get Ready With Me (GRWM)", category:'format', networks:['TikTok','Instagram'], description:"Le format GRWM cartonne en engagement.", suggestedAngle:"Filmez votre routine en GRWM." },
+    { title:"Ingrédients & transparence", category:'sujet', networks:['Instagram','LinkedIn'], description:"Les consommateurs veulent comprendre la composition.", suggestedAngle:"Décryptez un ingrédient clé de vos produits." },
+    { title:"#SkinTok", category:'hashtag', networks:['TikTok','Instagram'], description:"Communauté soin en très forte croissance.", suggestedAngle:"Partagez un conseil soin validé par votre expertise." }
+  ],
+  food:[
+    { title:"Recettes express", category:'format', networks:['TikTok','Instagram'], description:"Les recettes de moins de 30s sont massivement partagées.", suggestedAngle:"Montrez une recette signature en 30 secondes." },
+    { title:"Coulisses en cuisine", category:'sujet', networks:['Instagram','TikTok'], description:"Le behind-the-scenes en cuisine fidélise.", suggestedAngle:"Filmez la préparation d'un plat emblématique." },
+    { title:"Local & circuit court", category:'sujet', networks:['Instagram','Facebook'], description:"L'origine des produits influence fortement l'achat.", suggestedAngle:"Présentez un producteur partenaire." },
+    { title:"#FoodTok", category:'hashtag', networks:['TikTok','Instagram'], description:"Hashtag food en hausse continue.", suggestedAngle:"Partagez une astuce gourmande rapide." }
+  ],
+  tech:[
+    { title:"Build in public", category:'sujet', networks:['LinkedIn','X'], description:"Partager les coulisses du produit crée la confiance.", suggestedAngle:"Partagez une décision produit récente et son pourquoi." },
+    { title:"IA appliquée au métier", category:'sujet', networks:['LinkedIn','X'], description:"Les cas d'usage concrets de l'IA captent l'attention.", suggestedAngle:"Montrez comment l'IA fait gagner du temps à vos clients." },
+    { title:"Démos produit (< 60s)", category:'format', networks:['LinkedIn','X','Instagram'], description:"Les démos courtes augmentent les essais.", suggestedAngle:"Faites une démo de votre fonctionnalité phare." },
+    { title:"#BuildInPublic", category:'hashtag', networks:['X','LinkedIn'], description:"Communauté tech très active autour de la transparence.", suggestedAngle:"Partagez une métrique de croissance récente." }
+  ],
+  fitness:[
+    { title:"Routines à la maison", category:'format', networks:['Instagram','TikTok','YouTube'], description:"Le sport à domicile reste très demandé.", suggestedAngle:"Proposez une routine de 10 minutes sans matériel." },
+    { title:"Transformations avant/après", category:'sujet', networks:['Instagram','TikTok'], description:"Les preuves de résultats inspirent et convertissent.", suggestedAngle:"Partagez un parcours de transformation client." },
+    { title:"Santé mentale & équilibre", category:'sujet', networks:['Instagram','LinkedIn'], description:"Le bien-être global prime sur la seule performance.", suggestedAngle:"Donnez un conseil concret pour mieux récupérer." }
+  ],
+  conseil:[
+    { title:"Thought leadership", category:'sujet', networks:['LinkedIn'], description:"Les prises de position d'expert génèrent de la portée.", suggestedAngle:"Donnez un avis tranché sur une pratique du secteur." },
+    { title:"Études de cas chiffrées", category:'format', networks:['LinkedIn','Email'], description:"Les résultats concrets crédibilisent l'offre.", suggestedAngle:"Détaillez un cas client avec les chiffres clés." },
+    { title:"Carrousels méthode", category:'format', networks:['LinkedIn','Instagram'], description:"Les frameworks en carrousel sont très sauvegardés.", suggestedAngle:"Présentez votre méthode en 5 étapes." }
+  ]
+};
+// Détecte le secteur de la marque (secteur + mots-clés + nom + cible) → pack pertinent.
+function detectSectorPack(brand){
+  const m=brand.brand_memory||{};
+  const hay=((brand.secteur||'')+' '+(brand.nom||'')+' '+((m.mots_cles||[]).join(' '))+' '+(m.cible||'')).toLowerCase();
+  const map=[
+    [/mode|fashion|v[êe]tement|textile|pr[êe]t-[àa]-porter|luxe|lifestyle|accessoire|chaussure/, 'mode'],
+    [/beaut[ée]|cosm[ée]tique|maquillage|soin|skincare|parfum/, 'beaute'],
+    [/food|restaur|aliment|cuisine|boisson|caf[ée]|p[âa]tiss|traiteur|gastronom/, 'food'],
+    [/tech|saas|logiciel|software|digital|\bapp\b|application|startup|\bit\b|data|cloud|d[ée]v/, 'tech'],
+    [/fitness|sport|coach|musculation|yoga|bien-?[êe]tre|sant[ée]|nutrition/, 'fitness'],
+    [/marketing|conseil|agence|b2b|communication|consult|formation|strat[ée]gie/, 'conseil']
+  ];
+  for(const [re,key] of map){ if(re.test(hay)) return key; }
+  return null;
+}
+// Génère ~12 tendances cohérentes avec le secteur (déterministe par marque).
+function mockTrends(brand){
+  brand=brand||{};
+  const seed=aHashSeed(brand.id||'brandly');
+  const sectorKey=detectSectorPack(brand);
+  const sectorPack=(sectorKey&&TREND_PACKS[sectorKey])||[];
+  const pool=sectorPack.map(t=>({t,sector:true})).concat(TREND_PACK_GENERIC.map(t=>({t,sector:false})));
+  const list=pool.map((entry,i)=>{
+    const r=aMulberry32(seed+i*7919), mv=r();
+    const momentum= mv<0.38?'montant':(mv<0.70?'chaud':'stable');
+    const growthPct= momentum==='montant'?Math.round(45+115*r()):momentum==='chaud'?Math.round(18+37*r()):Math.round(1+11*r());
+    const relevanceScore= entry.sector?Math.round(78+19*r()):Math.round(52+26*r());
+    return { id:'tr-'+i, title:entry.t.title, category:entry.t.category, momentum, growthPct,
+      relevanceScore, networks:entry.t.networks, description:entry.t.description, suggestedAngle:entry.t.suggestedAngle };
+  });
+  list.sort((a,b)=>b.relevanceScore-a.relevanceScore);
+  return list;
+}
+const trendsProvider={
+  // getTrends({brand}) -> [{ id,title,category,momentum,growthPct,relevanceScore,networks,description,suggestedAngle }]
+  async getTrends({ brand }){
+    // === BRANCHER LA VRAIE SOURCE ICI (remplacer la ligne mock ci-dessous) ===
+    // Écoute sociale (Brandwatch / Talkwalker / Meltwater), Google Trends API,
+    // TikTok Creative Center, hashtags trending par réseau (Meta / X API).
+    // Idéalement via une Edge Function Supabase qui détient les clés (jamais côté navigateur).
+    await wait(450); // latence simulée (skeleton visible)
+    return mockTrends(brand);
+  }
+};
+
+/* ---- Trends : rendu + filtres + passage au générateur ---- */
+const TREND_CAT_LABEL={ sujet:'Sujet', format:'Format', hashtag:'Hashtag' };
+function trendMomentumMeta(m){
+  if(m==='montant') return { color:'#2D7A4F', icon:'↗', label:'Montant' };
+  if(m==='chaud') return { color:'#E8957A', icon:'🔥', label:'Chaud' };
+  return { color:'#8A9A8C', icon:'→', label:'Stable' };
+}
+function initTrendsView(){
+  state.trendsCat=state.trendsCat||'tous';
+  state.trendsMom=state.trendsMom||'tous';
+  state.trendsTab=state.trendsTab||'tendances';
+  const sub=document.getElementById('trends-subtitle');
+  if(sub) sub.textContent=state.selectedBrand?('Tendances pour '+state.selectedBrand.nom+(state.selectedBrand.secteur?(' · '+state.selectedBrand.secteur):'')):'Les tendances qui comptent pour votre secteur.';
+  const bn=document.getElementById('templates-brand-name'); if(bn) bn.textContent=state.selectedBrand?state.selectedBrand.nom:'votre marque';
+  setTrendsTab(state.trendsTab);
+  loadTrends();
+}
+function setTrendsTab(tab){
+  state.trendsTab=tab;
+  const td=document.getElementById('trends-sub-tendances'), tp=document.getElementById('trends-sub-templates');
+  const stT=document.getElementById('subtab-tendances'), stP=document.getElementById('subtab-templates');
+  if(td) td.style.display=(tab==='tendances')?'block':'none';
+  if(tp) tp.style.display=(tab==='templates')?'block':'none';
+  if(stT) stT.classList.toggle('active',tab==='tendances');
+  if(stP) stP.classList.toggle('active',tab==='templates');
+  if(tab==='templates') initTemplatesView();
+}
+async function loadTrends(){
+  if(!state.selectedBrand) return;
+  renderTrendsSkeleton();
+  let data=null;
+  try{ data=await trendsProvider.getTrends({ brand:state.selectedBrand }); }catch(e){ data=null; }
+  state.trendsData=data||[];
+  renderTrends();
+}
+function setTrendCat(cat,el){
+  state.trendsCat=cat;
+  if(el&&el.parentElement){ el.parentElement.querySelectorAll('.template-filter').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
+  renderTrends();
+}
+function setTrendMom(mom,el){
+  state.trendsMom=mom;
+  if(el&&el.parentElement){ el.parentElement.querySelectorAll('.template-filter').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
+  renderTrends();
+}
+function renderTrends(){
+  const grid=document.getElementById('trends-grid'); if(!grid) return;
+  const cat=state.trendsCat||'tous', mom=state.trendsMom||'tous';
+  const list=(state.trendsData||[]).filter(t=>(cat==='tous'||t.category===cat)&&(mom==='tous'||t.momentum===mom));
+  if(!list.length){ grid.innerHTML='<div class="an-card" style="grid-column:1/-1; text-align:center; padding:44px 20px"><div style="font-size:28px;margin-bottom:8px">📈</div><div style="font-weight:600;color:var(--text-main);margin-bottom:4px">Aucune tendance pour ce filtre</div><div class="small">Élargissez la catégorie ou le momentum.</div></div>'; return; }
+  grid.innerHTML=list.map(renderTrendCard).join('');
+  if(typeof moStagger==='function') moStagger('#trends-grid');
+}
+function renderTrendCard(t){
+  const e=escapeHtml, mm=trendMomentumMeta(t.momentum);
+  const catColors={ sujet:'#185FA5', format:'#7A5BA6', hashtag:'#C13584' };
+  const cc=catColors[t.category]||'#8A9A8C';
+  const nets=(t.networks||[]).map(n=>`<span class="trend-net">${e(n)}</span>`).join('');
+  const growth=(t.momentum==='stable'?'':'+')+t.growthPct+'%';
+  return `<div class="trend-card">
+    <div class="row" style="justify-content:space-between; align-items:flex-start; gap:8px">
+      <span class="trend-badge" style="background:${cc}1f; color:${cc}">${e(TREND_CAT_LABEL[t.category]||t.category)}</span>
+      <span class="trend-momentum" style="color:${mm.color}">${mm.icon} ${growth}</span>
+    </div>
+    <div class="trend-title">${e(t.title)}</div>
+    <div class="trend-desc">${e(t.description)}</div>
+    <div class="trend-angle">💡 ${e(t.suggestedAngle)}</div>
+    <div class="trend-nets">${nets}</div>
+    <div>
+      <div class="row" style="justify-content:space-between; margin-bottom:4px"><span class="small" style="color:var(--text-muted)">Pertinence</span><span class="small" style="font-weight:700; color:var(--text-main)">${t.relevanceScore}%</span></div>
+      <div class="trend-score-bar"><div class="trend-score-fill" style="width:${t.relevanceScore}%"></div></div>
+    </div>
+    <button class="btn-primary btn-sm trend-gen-btn" onclick="generateFromTrend('${e(t.id)}')">✦ Générer un post sur cette tendance</button>
+  </div>`;
+}
+function renderTrendsSkeleton(){
+  const grid=document.getElementById('trends-grid'); if(!grid) return;
+  grid.innerHTML=Array(6).fill('<div class="trend-card"><div class="an-skel an-skel-sm"></div><div class="an-skel an-skel-md"></div><div class="an-skel an-skel-sm" style="width:90%"></div><div class="an-skel an-skel-sm" style="width:70%"></div></div>').join('');
+}
+// Mappe les réseaux d'une tendance vers un canal de génération existant.
+function pickChannelFromNetworks(networks){
+  const keys=Object.keys(CHANNELS); // LinkedIn, Instagram, Email, X, Facebook
+  for(const n of (networks||[])){ if(keys.includes(n)) return n; }
+  return 'Instagram';
+}
+// ★ Cœur de la valeur : route vers le générateur en pré-remplissant le contexte.
+function generateFromTrend(id){
+  const t=(state.trendsData||[]).find(x=>x.id===id); if(!t) return;
+  const channel=pickChannelFromNetworks(t.networks);
+  const navEl=document.querySelector('#dash-side-nav [data-channel="'+channel+'"]');
+  navChannel(channel, navEl);            // → showPanel('generate') + renderChannelView() (vide gen-sujet)
+  const sujet=t.title+(t.suggestedAngle?(' — '+t.suggestedAngle):'');
+  state.genContext={ sujet, source:'trend', trendId:t.id, networks:t.networks };
+  const input=document.getElementById('gen-sujet');
+  if(input){ input.value=sujet; input.focus(); input.classList.add('flash'); setTimeout(()=>input.classList.remove('flash'),900); }
+  showToast('Sujet pré-rempli depuis la tendance « '+t.title+' » — choisissez un format puis générez.','ok');
 }
 
 /* ---- Bibliothèque de templates ---- */
