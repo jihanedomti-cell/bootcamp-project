@@ -903,7 +903,6 @@
 
         <div class="side-sep"></div>
         <div class="side-label">Outils</div>
-        <a class="brand-item" id="nav-tone" onclick="navTo('tone',this)"><span>◎</span><span>Tone Checker</span></a>
         <a class="brand-item" id="nav-historique" onclick="navTo('historique',this)"><span>◷</span><span>Historique</span><span id="historique-count" style="display:none; margin-left:auto; font-size:11px; background:var(--green); color:#fff; border-radius:10px; padding:1px 7px; font-weight:600;"></span></a>
 
         <div id="admin-nav-wrap" style="display:none">
@@ -1831,6 +1830,8 @@ function renderMemory(){
   state.memFiles=[];
   memRenderFileList();
   setupMemDropzone();
+  moveToneIntoMemory();
+  renderToneChecker();
   if(typeof moStagger==='function'){ moStagger('#mem-display'); moStaggerMemoryTags(); }
 }
 
@@ -2881,6 +2882,19 @@ function renderToneChecker(){
   document.getElementById('tone-checker-input').value='';
   document.getElementById('tone-checker-result').style.display='none';
   document.getElementById('tone-checker-loader').style.display='none';
+}
+/* Déplace (une seule fois) le Tone Checker dans la Brand Memory, en bas de page. */
+function moveToneIntoMemory(){
+  const tone=document.getElementById('panel-tone');
+  const mem=document.getElementById('panel-memory');
+  if(!mem || document.getElementById('tone-in-memory')) return;
+  if(!tone) return;
+  const section=document.createElement('div');
+  section.id='tone-in-memory';
+  section.style.cssText='margin-top:28px; padding-top:20px; border-top:1.5px solid var(--border)';
+  while(tone.firstChild) section.appendChild(tone.firstChild);
+  mem.appendChild(section);
+  tone.remove();
 }
 function toneRewrite(texte, m){
   let out=String(texte||'');
