@@ -1173,12 +1173,6 @@
             </div>
           </div>
 
-          <div class="trends-subtabs">
-            <button class="trends-subtab active" id="subtab-tendances" onclick="setTrendsTab('tendances')"><span>📈</span> Tendances</button>
-            <button class="trends-subtab secondary" id="subtab-templates" onclick="setTrendsTab('templates')"><span>📋</span> Templates</button>
-          </div>
-
-          <!-- Sous-section : Tendances -->
           <div id="trends-sub-tendances">
             <div class="trend-filters">
               <span class="trend-filter-label">Catégorie</span>
@@ -1195,49 +1189,6 @@
               <button class="template-filter" data-tmom="stable" onclick="setTrendMom('stable',this)">→ Stable</button>
             </div>
             <div id="trends-grid" class="trends-grid"></div>
-          </div>
-
-          <!-- Sous-section : Templates (secondaire — markup existant relocalisé) -->
-          <div id="trends-sub-templates" style="display:none">
-            <div class="row" style="justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:12px">
-              <div>
-                <h4 style="margin:0 0 4px; font-size:16px">📋 Bibliothèque de templates</h4>
-                <p class="small">14 structures prêtes — adaptées en 1 clic au ton de <strong id="templates-brand-name"></strong>.</p>
-              </div>
-            </div>
-            <div style="display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap" id="template-filters">
-              <button class="template-filter active" data-canal="tous" onclick="filterTemplates('tous')">Tous</button>
-              <button class="template-filter" data-canal="LinkedIn" onclick="filterTemplates('LinkedIn')">💼 LinkedIn</button>
-              <button class="template-filter" data-canal="Instagram" onclick="filterTemplates('Instagram')">📸 Instagram</button>
-              <button class="template-filter" data-canal="Email" onclick="filterTemplates('Email')">✉️ Email</button>
-              <button class="template-filter" data-canal="X / Twitter" onclick="filterTemplates('X / Twitter')">🐦 X</button>
-              <button class="template-filter" data-canal="Facebook" onclick="filterTemplates('Facebook')">👥 Facebook</button>
-            </div>
-            <div id="templates-grid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px"></div>
-          </div>
-
-          <!-- Modal d'adaptation (templates) -->
-          <div id="template-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; align-items:center; justify-content:center">
-            <div class="card" style="width:580px; max-width:95vw; max-height:85vh; overflow-y:auto">
-              <div class="row" style="justify-content:space-between; margin-bottom:18px">
-                <div>
-                  <div style="font-size:16px; font-weight:700" id="modal-template-title"></div>
-                  <div class="small" id="modal-template-canal" style="margin-top:4px"></div>
-                </div>
-                <button onclick="closeTemplateModal()" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--dash-muted)">✕</button>
-              </div>
-              <div class="field"><label>Sujet spécifique (optionnel)</label><input type="text" id="template-sujet-input" placeholder="Ex : lancement de ma nouvelle offre, conseils sur la prospection…" /></div>
-              <button onclick="adaptTemplate()" class="btn-primary" id="adapt-template-btn" style="width:100%; margin-bottom:16px">✦ Adapter au ton de ma marque</button>
-              <div id="template-adapt-loader" class="small" style="display:none; text-align:center; padding:12px">Adaptation en cours…</div>
-              <div id="template-adapt-result" style="display:none">
-                <div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--dash-peach); margin-bottom:10px">✦ Version adaptée à votre marque</div>
-                <div id="template-result-text" style="background:var(--bg-section); border-radius:var(--dash-radius-sm); padding:16px; font-size:14px; line-height:1.8; white-space:pre-wrap; max-height:300px; overflow-y:auto"></div>
-                <div class="row" style="gap:10px; margin-top:12px">
-                  <button onclick="copyTemplateResult()" class="btn-primary" style="flex:1">Copier</button>
-                  <button onclick="adaptTemplate()" class="btn-secondary">↺ Regénérer</button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -2472,22 +2423,9 @@ function trendMomentumMeta(m){
 function initTrendsView(){
   state.trendsCat=state.trendsCat||'tous';
   state.trendsMom=state.trendsMom||'tous';
-  state.trendsTab=state.trendsTab||'tendances';
   const sub=document.getElementById('trends-subtitle');
   if(sub) sub.textContent=state.selectedBrand?('Tendances pour '+state.selectedBrand.nom+(state.selectedBrand.secteur?(' · '+state.selectedBrand.secteur):'')):'Les tendances qui comptent pour votre secteur.';
-  const bn=document.getElementById('templates-brand-name'); if(bn) bn.textContent=state.selectedBrand?state.selectedBrand.nom:'votre marque';
-  setTrendsTab(state.trendsTab);
   loadTrends();
-}
-function setTrendsTab(tab){
-  state.trendsTab=tab;
-  const td=document.getElementById('trends-sub-tendances'), tp=document.getElementById('trends-sub-templates');
-  const stT=document.getElementById('subtab-tendances'), stP=document.getElementById('subtab-templates');
-  if(td) td.style.display=(tab==='tendances')?'block':'none';
-  if(tp) tp.style.display=(tab==='templates')?'block':'none';
-  if(stT) stT.classList.toggle('active',tab==='tendances');
-  if(stP) stP.classList.toggle('active',tab==='templates');
-  if(tab==='templates') initTemplatesView();
 }
 async function loadTrends(){
   if(!state.selectedBrand) return;
@@ -2558,132 +2496,6 @@ function generateFromTrend(id){
   const input=document.getElementById('gen-sujet');
   if(input){ input.value=sujet; input.focus(); input.classList.add('flash'); setTimeout(()=>input.classList.remove('flash'),900); }
   showToast('Sujet pré-rempli depuis la tendance « '+t.title+' » — choisissez un format puis générez.','ok');
-}
-
-/* ---- Bibliothèque de templates ---- */
-let currentTemplate=null;
-const TEMPLATES_LIBRARY=[
-  { id:'li-storytelling', canal:'LinkedIn', categorie:'Storytelling', emoji:'📖', titre:'Histoire personnelle', description:'Partager une expérience personnelle qui illustre une leçon business', structure:`[Accroche choc — une phrase qui interpelle]\n\nIl y a [X] ans, [situation de départ difficile].\n\n[Développement : ce qui s'est passé, les obstacles]\n\nCe que j'ai appris :\n→ [Leçon 1]\n→ [Leçon 2]\n→ [Leçon 3]\n\n[Conclusion : ce que ça a changé]\n\nEt vous, avez-vous vécu une situation similaire ?\n\n#[secteur] #[valeur] #entrepreneuriat` },
-  { id:'li-conseil', canal:'LinkedIn', categorie:'Conseils', emoji:'💡', titre:'Liste de conseils', description:'Partager X conseils pratiques sur votre domaine d\'expertise', structure:`[Accroche : "X erreurs que font 90% des [cible]"]\n\n[Conseil 1] :\n[Explication courte]\n\n[Conseil 2] :\n[Explication courte]\n\n[Conseil 3] :\n[Explication courte]\n\nLequel vous parle le plus ? 👇\n\n#[secteur] #[expertise] #conseils` },
-  { id:'li-question', canal:'LinkedIn', categorie:'Engagement', emoji:'❓', titre:'Question engageante', description:'Poser une question qui génère des commentaires et du débat', structure:`[Question provocatrice en 1 ligne]\n\n[Contexte : pourquoi vous posez cette question]\n\n[Votre point de vue personnel — assumé]\n\n↓ Votre avis en commentaire ?\n\n#[secteur] #[thème]` },
-  { id:'li-coulisses', canal:'LinkedIn', categorie:'Coulisses', emoji:'🎬', titre:'Behind the scenes', description:'Montrer les coulisses de votre activité, un processus', structure:`Derrière les coulisses de [activité] 🎬\n\nCe que vous voyez : [résultat final]\nCe que vous ne voyez pas : [le travail en amont]\n\n[Anecdote ou moment marquant récent]\n\n[Ce que vous aimez dans ce travail]\n\n[Question finale pour engager]\n\n#[secteur] #[valeur]` },
-  { id:'li-carrousel', canal:'LinkedIn', categorie:'Carrousel', emoji:'🎠', titre:'Plan de carrousel', description:'Structure d\'un carrousel LinkedIn en 7 slides', structure:`SLIDE 1 — Couverture\nTitre : "[Promesse forte]"\n\nSLIDE 2 — Le problème\n"[Situation frustrante de votre cible]"\n\nSLIDE 3 — Point 1\n[Point clé 1 + exemple]\n\nSLIDE 4 — Point 2\n[Point clé 2 + exemple]\n\nSLIDE 5 — Point 3\n[Point clé 3 + exemple]\n\nSLIDE 6 — Récap\n"[Les 3 points en résumé]"\n\nSLIDE 7 — CTA\n"[Action à faire]"` },
-  { id:'ig-caption', canal:'Instagram', categorie:'Caption', emoji:'📸', titre:'Caption inspirante', description:'Caption pour une photo de lifestyle ou de travail', structure:`[1-2 phrases percutantes sur l'émotion du moment]\n\n[Histoire derrière la photo, réflexion]\n\n[Message à retenir]\n\n[Question ou invitation à l'action]\n·\n·\n·\n#[niche] #[secteur] #[valeur] #[lifestyle] #[inspiration] #[marque] #[cible] #[thème1] #[thème2] #[thème3]` },
-  { id:'ig-produit', canal:'Instagram', categorie:'Produit', emoji:'🛍️', titre:'Mise en avant produit/service', description:'Présenter une offre ou un service de façon authentique', structure:`[Accroche : bénéfice principal en 1 phrase]\n\n[Comment ce produit/service est né, quel problème il résout]\n\nCe que vous allez obtenir :\n✨ [Bénéfice 1]\n✨ [Bénéfice 2]\n✨ [Bénéfice 3]\n\n[Preuve : témoignage, chiffre, résultat]\n\n[CTA clair] → Lien en bio 🔗\n\n#[produit] #[secteur] #[cible]` },
-  { id:'email-newsletter', canal:'Email', categorie:'Newsletter', emoji:'📨', titre:'Newsletter hebdomadaire', description:'Structure d\'une newsletter engageante avec 3 rubriques', structure:`Objet : [Question intrigante — max 50 caractères]\n\nBonjour [Prénom],\n\n[Accroche personnelle — 2-3 lignes]\n\n━━━━━━━━━━━━━━━\n🔍 CE QUE J'AI OBSERVÉ CETTE SEMAINE\n[Insight de votre secteur]\n\n━━━━━━━━━━━━━━━\n💡 À APPLIQUER MAINTENANT\n[Conseil actionnable]\n\n━━━━━━━━━━━━━━━\n📌 EN BREF\n• [Info 1]\n• [Info 2]\n\nÀ la semaine prochaine,\n[Prénom]\n\nP.S. [Message personnel]` },
-  { id:'email-vente', canal:'Email', categorie:'Vente', emoji:'💰', titre:'Email de vente', description:'Email pour présenter et vendre une offre', structure:`Objet : [Bénéfice direct ou urgence]\n\nBonjour [Prénom],\n\n[Identifier le problème précis du lecteur]\n\n[Conséquences de ne pas le résoudre]\n\n[Présenter l'offre comme la solution]\n\nVoici ce que vous obtenez :\n→ [Résultat 1]\n→ [Résultat 2]\n→ [Résultat 3]\n\n[Preuve : témoignage, chiffre]\n\n[Offre et prix clairs]\n\n[CTA principal]\n\nÀ bientôt,\n[Prénom]` },
-  { id:'x-thread', canal:'X / Twitter', categorie:'Thread', emoji:'🧵', titre:'Thread viral', description:'Thread de 7 tweets sur un sujet de votre expertise', structure:`1/ [Accroche choc — affirmation contre-intuitive]\n\n2/ [Pourquoi ce sujet est important maintenant]\n\n3/ [Point 1 — le plus surprenant]\n\n4/ [Point 2 — exemple ou chiffre]\n\n5/ [Point 3 — conseil actionnable]\n\n6/ [Point 4 — erreur à éviter]\n\n7/ [Conclusion + récap]\n\nSi utile : RT le 1er tweet 🔁` },
-  { id:'x-hot-take', canal:'X / Twitter', categorie:'Engagement', emoji:'🔥', titre:'Hot take', description:'Opinion forte et assumée pour générer du débat', structure:`[Opinion forte et polarisante sur votre secteur]\n\n[Argument en 2-3 phrases]\n\n[Ce que la plupart font vs ce que vous recommandez]\n\nVous êtes d'accord ou pas ? 👇` },
-  { id:'fb-communaute', canal:'Facebook', categorie:'Communauté', emoji:'👥', titre:'Post communauté', description:'Post pour engager et fédérer votre communauté', structure:`[Salutation chaleureuse à votre communauté]\n\n[Question ouverte qui invite au partage]\n\n[Votre propre réponse — montrez l'exemple]\n\n👇 Dites-moi en commentaire !` },
-  { id:'fb-annonce', canal:'Facebook', categorie:'Annonce', emoji:'📢', titre:'Annonce importante', description:'Communiquer une nouveauté, un lancement, un événement', structure:`📢 [TITRE DE L'ANNONCE]\n\n[Ce qui est nouveau — 2-3 lignes]\n\nPourquoi c'est important pour vous :\n✅ [Bénéfice 1]\n✅ [Bénéfice 2]\n✅ [Bénéfice 3]\n\n[Détails : date, lieu, lien]\n\n[CTA clair]\n\nDes questions ? 👇` },
-  { id:'fb-temoignage', canal:'Facebook', categorie:'Preuve sociale', emoji:'⭐', titre:'Témoignage client', description:'Mettre en avant un retour client de façon authentique', structure:`[Nom du client] vient de partager son expérience ⭐\n\n"[Citation du témoignage]"\n— [Prénom], [situation du client]\n\n[Son problème avant, ce qu'on a fait ensemble]\n\n[Résultat obtenu]\n\nVous aussi vous souhaitez [résultat] ?\n👉 [CTA ou lien]` }
-];
-function renderTemplates(templates){
-  const grid=document.getElementById('templates-grid'); if(!grid) return;
-  const e=escapeHtml;
-  if(!templates||!templates.length){ grid.innerHTML='<div class="small" style="grid-column:1/-1; text-align:center; padding:40px">Aucun template pour ce canal.</div>'; return; }
-  grid.innerHTML=templates.map(t=>`<div class="card template-card" onclick="openTemplateModal('${e(t.id)}')">
-    <div class="row" style="gap:10px; margin-bottom:10px">
-      <span style="font-size:24px">${t.emoji}</span>
-      <div>
-        <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--dash-peach)">${e(t.canal)} · ${e(t.categorie)}</div>
-        <div style="font-size:14px; font-weight:700; color:var(--dash-text)">${e(t.titre)}</div>
-      </div>
-    </div>
-    <div class="small" style="line-height:1.5; margin-bottom:14px">${e(t.description)}</div>
-    <div style="font-size:12px; font-weight:600; color:var(--dash-peach)">Adapter au ton de ma marque →</div>
-  </div>`).join('');
-}
-function filterTemplates(canal){
-  document.querySelectorAll('.template-filter').forEach(b=>b.classList.toggle('active', b.getAttribute('data-canal')===canal));
-  const filtered = canal==='tous' ? TEMPLATES_LIBRARY : TEMPLATES_LIBRARY.filter(t=>t.canal===canal);
-  renderTemplates(filtered);
-}
-function initTemplatesView(){
-  const n=document.getElementById('templates-brand-name'); if(n) n.textContent=state.selectedBrand?state.selectedBrand.nom:'votre marque';
-  filterTemplates('tous');
-}
-function openTemplateModal(id){
-  currentTemplate=TEMPLATES_LIBRARY.find(t=>t.id===id); if(!currentTemplate) return;
-  document.getElementById('modal-template-title').textContent=currentTemplate.emoji+' '+currentTemplate.titre;
-  document.getElementById('modal-template-canal').textContent=currentTemplate.canal+' · '+currentTemplate.categorie;
-  document.getElementById('template-sujet-input').value='';
-  document.getElementById('template-adapt-result').style.display='none';
-  document.getElementById('template-adapt-loader').style.display='none';
-  const brandName=state.selectedBrand?state.selectedBrand.nom:'ma marque';
-  document.getElementById('adapt-template-btn').textContent='✦ Adapter au ton de '+brandName;
-  document.getElementById('template-modal-overlay').style.display='flex';
-}
-function closeTemplateModal(){ document.getElementById('template-modal-overlay').style.display='none'; currentTemplate=null; }
-// Adaptation locale : remplit les placeholders avec la Brand Memory (démo)
-function localAdaptTemplate(structure, brand, sujet){
-  const m=brand.brand_memory||{};
-  const kw=(m.mots_cles||[]).filter(Boolean);
-  const vals=(m.valeurs||[]).filter(Boolean);
-  const k=()=>kw.length?kw[Math.floor(Math.random()*kw.length)]:'la clarté';
-  const v1=vals[0]||'l\'authenticité';
-  const cible=m.cible||'votre audience';
-  const secteur=brand.secteur||'votre secteur';
-  const prenom=(state.profile&&state.profile.prenom)||brand.nom;
-  const suj=sujet||kw[0]||'votre sujet';
-  let out=String(structure||'');
-  // Hashtags #[xxx]
-  out=out.replace(/#\[[^\]]+\]/g, ()=>'#'+String(k()).replace(/[^a-zà-ÿ0-9]/gi,''));
-  // Tokens simples
-  out=out.replace(/\[nom marque\]|\[marque\]/gi, brand.nom)
-         .replace(/\[secteur\]/gi, secteur)
-         .replace(/\[cible\]/gi, cible)
-         .replace(/\[valeurs?\]/gi, v1)
-         .replace(/\[expertise\]/gi, kw[0]||'votre expertise')
-         .replace(/\[th[èe]me\d?\]/gi, ()=>k())
-         .replace(/\[Pr[ée]nom\]/gi, prenom)
-         .replace(/\[X\]/g, '3')
-         .replace(/\[activit[ée]\]/gi, secteur)
-         .replace(/\[produit\/?service\]|\[produit\]|\[service\]/gi, 'notre offre');
-  // Placeholders narratifs restants → phrase de marque
-  out=out.replace(/\[([^\]]+)\]/g, (mm,inner)=>{
-    const low=inner.toLowerCase();
-    if(low.includes('accroche')||low.includes('titre')||low.includes('promesse')) return `${suj} : ce qui change vraiment pour ${cible}`;
-    if(low.includes('cta')||low.includes('action')||low.includes('lien')) return `👉 Découvrez comment, avec ${brand.nom}`;
-    if(low.includes('question')) return `Et vous, comment abordez-vous ${suj} ?`;
-    if(low.includes('conclusion')||low.includes('récap')||low.includes('recap')||low.includes('résumé')||low.includes('resume')||low.includes('bref')) return `En résumé : ${kw.slice(0,3).join(', ')||'clarté, impact, cohérence'}.`;
-    if(low.includes('citation')||low.includes('témoignage')||low.includes('temoignage')) return `Grâce à ${brand.nom}, on a vraiment gagné en ${kw[0]||'efficacité'}.`;
-    if(low.includes('objet')) return `${suj} — l'essentiel en 2 min`;
-    if(low.includes('preuve')||low.includes('résultat')||low.includes('resultat')||low.includes('chiffre')) return `Un résultat concret, mesurable, au service de ${cible}`;
-    if(low.match(/le[çc]on|point|conseil|erreur|b[ée]n[ée]fice|info|d[ée]tail/)) return k();
-    if(low.includes('contexte')||low.includes('développement')||low.includes('developpement')||low.includes('histoire')||low.includes('situation')||low.includes('explication')||low.includes('argument')||low.includes('anecdote')) return `Chez ${brand.nom}, on a vécu ça de près : on mise sur ${kw.slice(0,2).join(' et ')||'la clarté'} pour ${cible}.`;
-    if(low.includes('salutation')) return `Bonjour à toute la communauté ${brand.nom} 👋`;
-    return suj;
-  });
-  return out;
-}
-async function adaptTemplate(){
-  if(!currentTemplate) return;
-  if(!state.selectedBrand || !state.selectedBrand.brand_memory){ showToast('Sélectionnez une marque avec une Brand Memory.','err'); return; }
-  const sujet=document.getElementById('template-sujet-input').value.trim();
-  const btn=document.getElementById('adapt-template-btn');
-  const loader=document.getElementById('template-adapt-loader');
-  const result=document.getElementById('template-adapt-result');
-  btn.disabled=true; loader.style.display='block'; result.style.display='none';
-  await wait(800);
-  try{
-    if(!DEMO_MODE){ /* TODO: Edge Function sécurisée (clé API côté serveur) */ }
-    const text=localAdaptTemplate(currentTemplate.structure, state.selectedBrand, sujet);
-    document.getElementById('template-result-text').textContent=text;
-    result.style.display='block';
-    if(hasUnresolvedPlaceholder(text)){
-      showToast('Contenu affiché mais NON enregistré : un champ n\'a pas pu être rempli (placeholder).','err');
-    } else {
-      try{ await db.from('generated_contents').insert({ brand_id:state.selectedBrand.id, user_id:state.user.id, sujet:sujet||currentTemplate.titre, format:currentTemplate.canal+' — '+currentTemplate.titre, contenu:text }); }catch(e){}
-      if(typeof loadHistorique==='function') loadHistorique();
-    }
-  }catch(e){ showToast('Erreur lors de l\'adaptation. Réessayez.','err'); }
-  finally{ loader.style.display='none'; btn.disabled=false; }
-}
-function copyTemplateResult(){
-  const t=document.getElementById('template-result-text').textContent;
-  navigator.clipboard.writeText(t);
-  showToast('Contenu copié ✓','ok');
 }
 
 /* ---- Partage de Brand Memory (table brand_shares, lecture seule publique) ---- */

@@ -79,10 +79,9 @@ libre). La photo est mémorisée avec le post (`generated_contents.image`).
    secteur de la marque active ; filtres par catégorie et par momentum. Action clé :
    **« Générer un post sur cette tendance »** → `generateFromTrend()` route vers le
    générateur (`navChannel`) en pré-remplissant `#gen-sujet` (titre + angle suggéré) et
-   `state.genContext`. Les **Templates** existants restent accessibles en **sous-onglet
-   secondaire** de cette page (`setTrendsTab`). Données via `trendsProvider` (mock
-   déterministe par marque, packs sectoriels) : remplacer `mockTrends` par une vraie
-   source (écoute sociale / Google Trends) sans toucher au reste.
+   `state.genContext`. Données via `trendsProvider` (mock déterministe par marque, packs
+   sectoriels) : remplacer `mockTrends` par une vraie source (écoute sociale / Google
+   Trends) sans toucher au reste. (L'ancienne bibliothèque de Templates a été retirée.)
 4. **Éditeur de marque** — assistant en 3 étapes :
    - Étape 1 : infos de base (nom, secteur, site, couleur).
    - Étape 2 : **upload de documents** par drag & drop (.pdf, .doc, .docx, .txt,
