@@ -3,16 +3,11 @@
 // La clé PEXELS_API_KEY reste CÔTÉ SERVEUR (secret Supabase) — jamais exposée au
 // navigateur. Le front appelle cette fonction, jamais Pexels en direct (CORS + clé).
 //
-// Déploiement :
-//   supabase functions deploy search-photos
-//   supabase secrets set PEXELS_API_KEY=xxxxxxxxxxxxxxxx
-//
 // Réponse normalisée : { ok, query, photos:[{ id, url_small, url_large,
 //   photographer, photographer_url, alt }] }
 // En cas de souci (clé absente, rate limit, réseau) : HTTP 200 + { ok:false,
 //   reason, photos:[] } pour que le front bascule proprement sur son fallback.
 // =============================================================================
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const PEXELS_API = "https://api.pexels.com/v1/search";
 
@@ -29,7 +24,13 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-serve(async (req: Request): Promise<Response> => {
+function clampPerPage(v: unknown): number {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return 12;
+  return Math.min(30, Math.max(1, Math.floor(n)));
+}
+
+Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   const key = Deno.env.get("PEXELS_API_KEY");
@@ -77,12 +78,6 @@ serve(async (req: Request): Promise<Response> => {
     return json({ ok: false, reason: "network_error", photos: [] });
   }
 });
-
-function clampPerPage(v: unknown): number {
-  const n = Number(v);
-  if (!Number.isFinite(n) || n <= 0) return 12;
-  return Math.min(30, Math.max(1, Math.floor(n)));
-}
 
 interface PexelsPhoto {
   id: number;
