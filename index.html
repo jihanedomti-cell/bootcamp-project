@@ -590,6 +590,91 @@
   .pp-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
   .pp-empty { grid-column:1/-1; text-align:center; color:var(--text-muted); font-size:14px; padding:30px 10px; line-height:2; }
   @media(max-width:560px){ .pp-grid { grid-template-columns:repeat(2,1fr); } }
+
+  /* =====================================================================
+     SYSTÈME DE MOTION — tokens centralisés + animations (sobre, premium)
+     Règles : transform/opacity uniquement · respecte prefers-reduced-motion
+     ===================================================================== */
+  :root {
+    --mo-micro: 170ms; --mo-trans: 340ms; --mo-enter: 500ms; --mo-stagger: 60ms;
+    --mo-ease-out: cubic-bezier(.16,1,.3,1);
+    --mo-ease-inout: cubic-bezier(.65,0,.35,1);
+    --mo-spring: cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes moFadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+  @keyframes moFadeIn { from { opacity:0; } to { opacity:1; } }
+  @keyframes moBadgePulse { 0%,80%,100%{ transform:scale(1); } 88%{ transform:scale(1.18); } 94%{ transform:scale(.97); } }
+  @keyframes moDrift { 0%{ transform:translate3d(-2%,-1%,0) scale(1.06); } 50%{ transform:translate3d(2%,1.6%,0) scale(1.12); } 100%{ transform:translate3d(-2%,-1%,0) scale(1.06); } }
+  @keyframes moCheckPop { 0%{ transform:scale(.4); opacity:0; } 55%{ transform:scale(1.12); } 100%{ transform:scale(1); opacity:1; } }
+
+  /* Entrée de vue (crossfade, jamais de flash blanc) */
+  #view-dashboard.view.active, #view-brand-editor.view.active { animation: moFadeIn var(--mo-trans) var(--mo-ease-out); }
+  /* Entrée de panneau (centralise l'ancien .animate-in sur les tokens) */
+  .animate-in { animation: moFadeUp var(--mo-enter) var(--mo-ease-out) both; }
+
+  /* Stagger : éléments marqués .mo-item (--i = index) */
+  .mo-item { opacity:0; }
+  .mo-stagger.mo-run > .mo-item { animation: moFadeUp var(--mo-enter) var(--mo-ease-out) both; animation-delay: calc(var(--i,0) * var(--mo-stagger)); }
+  .mo-stagger-fast.mo-run > .mo-item { animation: moFadeUp var(--mo-trans) var(--mo-ease-out) both; animation-delay: calc(var(--i,0) * 35ms); }
+
+  /* Hover des cartes : élévation + léger scale + ombre approfondie (spring) */
+  #view-dashboard .card, #view-dashboard .mem-item, #view-dashboard #analytics-kpis > div {
+    transition: transform var(--mo-micro) var(--mo-spring), box-shadow var(--mo-trans) var(--mo-ease-out);
+  }
+  #view-dashboard .card:hover, #view-dashboard .mem-item:hover, #view-dashboard #analytics-kpis > div:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 12px 30px -8px rgba(92,110,78,0.34), 0 2px 8px rgba(60,70,50,0.08);
+  }
+
+  /* Tags / pills : hover « pop » + fond en fondu */
+  #view-dashboard .tag { transition: transform var(--mo-micro) var(--mo-spring), background var(--mo-micro) var(--mo-ease-out), color var(--mo-micro) var(--mo-ease-out); }
+  #view-dashboard .tag:hover { transform: scale(1.05); }
+
+  /* Boutons : press feedback (scale .97 spring) + hover légère luminosité */
+  .btn-primary, .btn-secondary, .btn-sm, .btn-ghost {
+    transition: transform var(--mo-micro) var(--mo-spring), filter var(--mo-micro) var(--mo-ease-out), box-shadow var(--mo-trans) var(--mo-ease-out), background var(--mo-micro) var(--mo-ease-out), color var(--mo-micro) var(--mo-ease-out);
+  }
+  .btn-primary:hover, .btn-secondary:hover { filter: brightness(1.05); }
+  .btn-primary:active, .btn-secondary:active, .btn-sm:active, .btn-ghost:active { transform: scale(.97); }
+
+  /* Sidebar : indicateur d'item actif qui glisse (FLIP, transform pur) */
+  #view-dashboard #dash-side-nav { position: relative; }
+  .mo-nav-ind { position:absolute; left:0; top:0; z-index:0; pointer-events:none; opacity:0; border-radius: var(--dash-radius-sm); background: var(--side-active-bg); box-shadow: 0 2px 8px rgba(0,0,0,0.18); transform-origin: top left; }
+  #view-dashboard .sidebar .brand-item { position: relative; z-index:1; transition: color var(--mo-trans) var(--mo-ease-inout), background var(--mo-micro) var(--mo-ease-out); }
+  #view-dashboard .sidebar .brand-item.active { background: transparent; box-shadow: none; }
+
+  /* Header : pilule active partagée qui glisse entre les onglets */
+  #view-dashboard .header-nav { position: relative; }
+  .mo-pill-ind { position:absolute; left:0; top:0; z-index:0; pointer-events:none; opacity:0; border-radius:50px; background:linear-gradient(135deg,var(--dash-yellow),var(--dash-peach)); box-shadow:0 4px 12px rgba(92,110,78,0.4); transform-origin: top left; }
+  #view-dashboard .header-nav-pill { position: relative; z-index:1; transition: color var(--mo-trans) var(--mo-ease-inout); }
+  #view-dashboard .header-nav-pill.active { background: transparent; box-shadow: none; color:#fff; }
+
+  /* Badges vivants : pulse discret occasionnel */
+  #notif-badge, #today-reminder-badge { animation: moBadgePulse 7s ease-in-out infinite; }
+
+  /* Confirmation de génération (petit check qui « pop ») */
+  .mo-success-check { display:inline-flex; align-items:center; gap:6px; margin:0 0 12px; padding:6px 14px; border-radius:50px; background:#E6EFE0; color:#46583B; font-size:13px; font-weight:600; box-shadow:0 4px 14px rgba(92,110,78,0.2); animation: moCheckPop 420ms var(--mo-spring) both; transition: opacity var(--mo-trans) var(--mo-ease-out); }
+
+  /* Fond légèrement vivant (dérive très lente, quasi imperceptible) */
+  #view-dashboard .main { position: relative; }
+  #view-dashboard .main::before {
+    content:''; position:absolute; inset:0; z-index:0; pointer-events:none;
+    background: radial-gradient(55% 45% at 22% 18%, rgba(126,149,128,0.10), transparent 60%),
+                radial-gradient(45% 40% at 82% 82%, rgba(193,131,94,0.06), transparent 60%);
+    animation: moDrift 60s ease-in-out infinite;
+  }
+  #view-dashboard .main > * { position: relative; z-index: 1; }
+
+  /* Micro-parallax (transform pur, piloté par JS via --px/--py) */
+  .mo-parallax { transition: transform var(--mo-trans) var(--mo-ease-out); transform: translate(var(--px,0), var(--py,0)); }
+
+  /* ===== prefers-reduced-motion : on coupe/réduit fortement le superflu ===== */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+    #view-dashboard .main::before, #notif-badge, #today-reminder-badge { animation: none !important; }
+    .mo-item { opacity:1 !important; }
+    .mo-parallax { transform: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -1458,7 +1543,7 @@ let selectedLang = null;
 let currentReminderData = {};
 
 /* ---------- Utilitaires UI ---------- */
-function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); }
+function show(viewId){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); window.scrollTo(0,0); if(typeof moAfterView==='function') moAfterView(viewId); }
 function loader(on,msg){ const l=document.getElementById('loader'); document.getElementById('loader-msg').textContent=msg||'Chargement...'; l.classList.toggle('show',!!on); }
 function showToast(msg,type){ const t=document.getElementById('toast'); t.textContent=msg; t.className='show '+(type||''); setTimeout(()=>t.className='',2600); }
 
@@ -1746,6 +1831,7 @@ function renderMemory(){
   state.memFiles=[];
   memRenderFileList();
   setupMemDropzone();
+  if(typeof moStagger==='function'){ moStagger('#mem-display'); moStaggerMemoryTags(); }
 }
 
 /* ---- Analyse des posts (analytics) ---- */
@@ -1779,22 +1865,24 @@ async function loadAnalytics(){
 }
 function renderKPIs(posts, period){
   const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
-  set('kpi-total', posts.length);
+  const setN=(id,v)=>{ const el=document.getElementById(id); if(!el) return; if(typeof moCountUp==='function') moCountUp(el,String(v)); else el.textContent=v; };
+  setN('kpi-total', posts.length);
   set('kpi-total-sub', period==='all'?'depuis le début':'sur '+period+' jours');
   const canaux=Array.from(new Set(posts.map(aCanal)));
-  set('kpi-canaux', canaux.length);
+  setN('kpi-canaux', canaux.length);
   set('kpi-canaux-sub', canaux.join(', '));
   const m=state.selectedBrand.brand_memory||{};
   const withContent=posts.filter(p=>p.contenu);
   if(withContent.length){
     const avg=Math.round(withContent.reduce((s,p)=>s+computeCoherenceScore(p.contenu,m).score,0)/withContent.length);
-    set('kpi-score', avg+'%');
+    setN('kpi-score', avg+'%');
   } else set('kpi-score','—');
   if(posts.length>=2){
     const first=new Date(posts[0].created_at), last=new Date(posts[posts.length-1].created_at);
     const weeks=Math.max(1,(last-first)/(7*24*3600*1000));
-    set('kpi-cadence',(posts.length/weeks).toFixed(1));
-  } else set('kpi-cadence', String(posts.length));
+    setN('kpi-cadence',(posts.length/weeks).toFixed(1));
+  } else setN('kpi-cadence', String(posts.length));
+  if(typeof moStagger==='function') moStagger('#analytics-kpis');
 }
 function renderVolumeChart(posts){
   const cv=document.getElementById('chart-volume'); if(!cv || typeof Chart==='undefined') return;
@@ -1909,6 +1997,7 @@ function showPanel(name){
 function setNavActive(el){
   document.querySelectorAll('#dash-side-nav .brand-item').forEach(a=>a.classList.remove('active'));
   if(el) el.classList.add('active');
+  if(typeof moNavIndicator==='function') moNavIndicator(el);
 }
 function exitAdmin(){
   document.getElementById('panel-admin').style.display='none';
@@ -1938,11 +2027,13 @@ function navChannel(channel,el){
   renderChannelView();
   // Un canal n'est pas dans les pills du header → on les désactive
   document.querySelectorAll('.header-nav-pill').forEach(p=>p.classList.remove('active'));
+  if(typeof moHeaderIndicator==='function') moHeaderIndicator(null);
 }
 /* ---- Navigation principale (pills du header) ---- */
 function setHeaderPill(section){
   document.querySelectorAll('.header-nav-pill').forEach(el=>el.classList.remove('active'));
   const pill=document.getElementById('hnav-'+section); if(pill) pill.classList.add('active');
+  if(typeof moHeaderIndicator==='function') moHeaderIndicator(pill||null);
 }
 function showSection(section){
   if(section==='settings'){ showSettings(); return; }
@@ -2638,6 +2729,7 @@ async function generateVariants(sujet, fmt){
   loadHistorique();
   if(!onboardingState.step3) completeOnboardingStep(3);
   showToast('3 variantes générées ✓','ok');
+  if(typeof moSuccessFlash==='function') moSuccessFlash();
   addNotif('✨','3 variantes générées'+(state.selectedBrand&&state.selectedBrand.nom?' pour « '+state.selectedBrand.nom+' »':''));
 }
 // Construit une variante adaptée à l'approche, au format et au réseau (mode démo).
@@ -3799,6 +3891,145 @@ function selectPhotoFromGrid(i){
   persistPhoto();
   showToast('Photo mise à jour ✓','ok');
 }
+
+/* =========================================================================
+   MOTION — animations centralisées (équivalent natif de Framer Motion)
+   transform/opacity uniquement · respecte prefers-reduced-motion · 60fps
+   Ne touche ni à la logique métier, ni au routing, ni aux données.
+   ========================================================================= */
+let reduceMotion = false;
+try { reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(_){}
+
+/* ---- Stagger d'apparition (cartes, tags…) ---- */
+function moStagger(sel, fast){
+  const c = typeof sel==='string' ? document.querySelector(sel) : sel;
+  if(!c) return;
+  c.classList.add(fast ? 'mo-stagger-fast' : 'mo-stagger');
+  Array.from(c.children).forEach((el,i)=>{ el.classList.add('mo-item'); el.style.setProperty('--i', i); });
+  c.classList.remove('mo-run'); void c.offsetWidth; c.classList.add('mo-run');
+}
+function moStaggerMemoryTags(){
+  document.querySelectorAll('#mem-display .mem-item > div').forEach(wrap=>{
+    if(wrap.querySelector('.tag')) moStagger(wrap, true);
+  });
+}
+
+/* ---- Compteurs animés (montée douce) ---- */
+function moCountUp(el, text){
+  if(!el) return;
+  if(reduceMotion){ el.textContent = text; return; }
+  const m = String(text).match(/^(-?\d+(?:\.\d+)?)(.*)$/);
+  if(!m){ el.textContent = text; return; }
+  const target = parseFloat(m[1]); const suffix = m[2] || '';
+  const dec = (m[1].split('.')[1] || '').length;
+  const sm = (el.textContent || '').match(/-?\d+(?:\.\d+)?/);
+  let start = sm ? parseFloat(sm[0]) : 0; if(!isFinite(start)) start = 0;
+  const dur = 700, t0 = performance.now();
+  function frame(now){
+    const p = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - p, 3);          // ease-out cubic
+    const val = start + (target - start) * e;
+    el.textContent = (dec ? val.toFixed(dec) : Math.round(val)) + suffix;
+    if(p < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---- Indicateurs glissants (shared-layout / layoutId via technique FLIP) ---- */
+function moEnsureInd(container, id, cls){
+  if(!container) return null;
+  let ind = container.querySelector('#' + id);
+  if(!ind){ ind = document.createElement('span'); ind.id = id; ind.className = cls; ind.setAttribute('aria-hidden','true'); container.insertBefore(ind, container.firstChild); }
+  return ind;
+}
+function moFlipMove(ind, target, container){
+  if(!ind || !target || !container) return;
+  if(target.offsetParent === null){ ind.style.opacity = '0'; ind.dataset.placed = '0'; return; }
+  const ir = ind.getBoundingClientRect();
+  const placed = ind.dataset.placed === '1';
+  const cr = container.getBoundingClientRect();
+  const tr = target.getBoundingClientRect();
+  const left = tr.left - cr.left + container.scrollLeft;
+  const top  = tr.top  - cr.top  + container.scrollTop;
+  ind.style.transition = 'none';
+  ind.style.opacity = '1';
+  ind.style.left = left + 'px'; ind.style.top = top + 'px';
+  ind.style.width = tr.width + 'px'; ind.style.height = tr.height + 'px';
+  ind.style.transformOrigin = 'top left';
+  ind.style.transform = 'none';
+  if(!placed || reduceMotion){ ind.dataset.placed = '1'; return; }   // 1er placement : pas d'animation
+  const nr = ind.getBoundingClientRect();
+  const dx = ir.left - nr.left, dy = ir.top - nr.top;
+  const sx = nr.width ? ir.width / nr.width : 1, sy = nr.height ? ir.height / nr.height : 1;
+  ind.style.transform = `translate(${dx}px,${dy}px) scale(${sx},${sy})`;
+  void ind.offsetWidth;
+  ind.style.transition = 'transform var(--mo-trans) var(--mo-ease-inout)';
+  ind.style.transform = 'translate(0,0) scale(1,1)';
+}
+function moHeaderIndicator(pill){
+  const nav = document.querySelector('#view-dashboard .header-nav'); if(!nav) return;
+  const ind = moEnsureInd(nav, 'mo-pill', 'mo-pill-ind');
+  if(!pill){ ind.style.opacity = '0'; ind.dataset.placed = '0'; return; }
+  moFlipMove(ind, pill, nav);
+}
+function moNavIndicator(el){
+  const nav = document.querySelector('#view-dashboard #dash-side-nav'); if(!nav) return;
+  const ind = moEnsureInd(nav, 'mo-nav', 'mo-nav-ind');
+  const active = el || nav.querySelector('.brand-item.active');
+  if(!active){ ind.style.opacity = '0'; ind.dataset.placed = '0'; return; }
+  moFlipMove(ind, active, nav);
+}
+function moRepositionIndicators(){
+  moHeaderIndicator(document.querySelector('#view-dashboard .header-nav-pill.active') || null);
+  moNavIndicator(null);
+}
+function moAfterView(viewId){
+  if(viewId === 'view-dashboard') requestAnimationFrame(()=>requestAnimationFrame(moRepositionIndicators));
+}
+
+/* ---- Confirmation de génération (subtile, non envahissante) ---- */
+function moSuccessFlash(){
+  const host = document.getElementById('gen-results');
+  if(!host || reduceMotion) return;
+  const c = document.createElement('div');
+  c.className = 'mo-success-check';
+  c.textContent = '✓ Variantes générées';
+  host.insertBefore(c, host.firstChild);
+  setTimeout(()=>{ c.style.opacity = '0'; setTimeout(()=>c.remove(), 360); }, 1400);
+}
+
+/* ---- Micro-parallax (max ~5px, désactivé en reduced-motion / tactile) ---- */
+function moInitParallax(){
+  if(reduceMotion) return;
+  try { if(window.matchMedia('(pointer:coarse)').matches) return; } catch(_){}
+  const main = document.querySelector('#view-dashboard .main'); if(!main) return;
+  let raf = null, mx = 0, my = 0;
+  const layers = ()=>document.querySelectorAll('.mo-parallax');
+  function apply(){
+    raf = null; const MAX = 5;
+    layers().forEach((el,i)=>{
+      const d = 0.6 + i * 0.35;
+      el.style.setProperty('--px', (mx * MAX * d).toFixed(1) + 'px');
+      el.style.setProperty('--py', (my * MAX * d).toFixed(1) + 'px');
+    });
+  }
+  main.addEventListener('mousemove', e=>{
+    const r = main.getBoundingClientRect();
+    mx = (e.clientX - r.left) / r.width - 0.5;
+    my = (e.clientY - r.top) / r.height - 0.5;
+    if(!raf) raf = requestAnimationFrame(apply);
+  });
+  main.addEventListener('mouseleave', ()=>{ layers().forEach(el=>{ el.style.setProperty('--px','0px'); el.style.setProperty('--py','0px'); }); });
+}
+
+function moInit(){
+  try { reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(_){}
+  document.querySelectorAll('#mem-display, #analytics-kpis').forEach(el=>el.classList.add('mo-parallax'));
+  moInitParallax();
+  window.addEventListener('resize', moRepositionIndicators);
+}
+if(document.readyState === 'loading') window.addEventListener('DOMContentLoaded', moInit);
+else moInit();
 
 /* =========================================================================
    CRÉATION / ÉDITION DE MARQUE (3 étapes)
