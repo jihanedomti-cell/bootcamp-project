@@ -19,14 +19,22 @@ secondes, plus un calendrier éditorial.
   figurer dans `index.html`. La sécurité réelle repose sur les règles **RLS**.
 
 ## Mode IA
-- `DEMO_MODE = true` dans `index.html` : l'IA est **simulée en local** (textes
-  réalistes, aucune clé, aucun coût). L'app est 100 % cliquable et démontrable.
-- **Pour brancher la vraie IA Anthropic** (plus tard, sans exposer de secret) :
-  1. Créer une **Edge Function Supabase** qui détient `ANTHROPIC_API_KEY` (secret
-     stocké côté serveur Supabase, jamais dans le code public).
-  2. Dans `index.html`, passer `DEMO_MODE = false` et remplacer le corps des
-     fonctions `callExtract`, `callGenerate`, `callCalendar` par un `fetch()` vers
-     cette Edge Function (qui relaie les prompts définis dans le cahier des charges).
+- `DEMO_MODE` dans `index.html` pilote la couche IA :
+  - `false` (par défaut) : **vraie IA Anthropic** via l'Edge Function `ai`
+    (modèle `claude-haiku-4-5`). La clé `ANTHROPIC_API_KEY` reste **côté serveur**
+    (secret Supabase), jamais dans le code public.
+  - `true` : IA **simulée en local** (textes réalistes, aucune clé, aucun coût).
+- **Repli automatique** : même en mode réel, chaque appel IA bascule sur la
+  simulation locale si l'Edge Function est indisponible (clé absente, réseau,
+  quota). L'app reste 100 % cliquable, jamais de crash.
+- **Edge Function `ai`** : `supabase/functions/ai/` (Deno, `Deno.serve`). Routeur
+  sur `{ action, payload }` couvrant les 6 fonctions IA — `extract`, `generate`,
+  `variants`, `calendar`, `coherence`, `tone` — avec sorties structurées (JSON
+  Schema). Déploiement + secret : voir le `README.md` de la fonction.
+- Côté front, le helper `aiCall(action, payload)` appelle la fonction ; les
+  fonctions `callExtract`, `callGenerate`, `callGenerateVariants`, `callCalendar`,
+  `callCoherenceScore`, `callToneCheck` l'utilisent puis retombent sur leur
+  logique locale en cas d'échec.
 
 ## Base de données
 Voir `supabase_setup.sql` (à exécuter dans Supabase → SQL Editor).

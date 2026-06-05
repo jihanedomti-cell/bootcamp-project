@@ -1529,10 +1529,28 @@ const SUPABASE_URL = "https://xzxsgjfehfifytflokhf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hretB8OfpdTt_weA_Uf8Ag_hV_cCT3L";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* MODE DÉMO : l'IA est SIMULÉE (textes réalistes générés en local, sans clé API).
-   Pour brancher la vraie IA plus tard, passez DEMO_MODE à false et implémentez
-   callClaude() pour appeler une Edge Function Supabase qui garde la clé secrète. */
-const DEMO_MODE = true;
+/* MODE IA : false = vraie IA Anthropic via l'Edge Function sécurisée `ai`
+   (la clé ANTHROPIC_API_KEY reste côté serveur). true = simulation locale (sans clé).
+   En mode réel, chaque appel IA bascule AUTOMATIQUEMENT sur la simulation locale si
+   l'Edge Function est indisponible (clé absente, réseau, quota) — jamais de crash. */
+const DEMO_MODE = false;
+const AI_ENDPOINT = SUPABASE_URL + '/functions/v1/ai';
+
+/* Appelle l'Edge Function IA. Renvoie l'objet `data` ou lève une erreur (le repli
+   sur la simulation locale est géré par chaque fonction callX appelante). */
+async function aiCall(action, payload){
+  let token = SUPABASE_KEY;
+  try{ const s=await db.auth.getSession(); if(s&&s.data&&s.data.session) token=s.data.session.access_token; }catch(_){}
+  const r = await fetch(AI_ENDPOINT, {
+    method:'POST',
+    headers:{ 'Authorization':'Bearer '+token, 'apikey':SUPABASE_KEY, 'Content-Type':'application/json' },
+    body: JSON.stringify({ action, payload })
+  });
+  if(!r.ok) throw new Error('http '+r.status);
+  const j = await r.json();
+  if(!j || !j.ok) throw new Error((j && j.reason) || 'ai_unavailable');
+  return j.data;
+}
 
 /* ---------- État global ---------- */
 let state = { user: null, profile: null, brands: [], selectedBrand: null, beDraft: null, lastGen: null, currentChannel: null, selectedFormat: null, allowBrandDelete: true, calMonth: null, calendarItems: [], currentVariants: [], selectedVariantIdx: 0, genRowId: null, genContext: null, memFiles: [] };
@@ -2773,7 +2791,11 @@ function buildVariant(approach, f, ch, ctx){
 
 // IA simulée : 3 variantes adaptées au format + réseau. En réel : JSON renvoyé par l'API Claude.
 async function callGenerateVariants(brand, sujet, format){
-  if(!DEMO_MODE){ /* TODO: fetch Edge Function avec le prompt détaillé, parser { "variantes":[...] } */ }
+  if(!DEMO_MODE){
+    const channel=(state.currentChannel==='X'?'twitter':String(state.currentChannel||''));
+    try{ const d=await aiCall('variants',{ brand, sujet, format, channel }); if(d&&Array.isArray(d.variantes)&&d.variantes.length) return d; }
+    catch(e){ console.warn('IA indisponible (variants) — repli simulation locale.',e); }
+  }
   await wait(1200);
   const m=brand.brand_memory||{};
   const kw=m.mots_cles||[];
@@ -2838,7 +2860,10 @@ function computeCoherenceScore(contenu, m){
   return { score, niveau, points_forts:forts.slice(0,3), points_amelioration:pa.slice(0,2), resume };
 }
 async function callCoherenceScore(contenu, brandMemory){
-  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function sécurisée (la clé reste côté serveur, jamais ici) */ }
+  if(!DEMO_MODE){
+    try{ const d=await aiCall('coherence',{ contenu, brandMemory }); if(d&&typeof d.score!=='undefined') return d; }
+    catch(e){ console.warn('IA indisponible (coherence) — repli simulation locale.',e); }
+  }
   await wait(500);
   return computeCoherenceScore(contenu, brandMemory);
 }
@@ -2953,7 +2978,10 @@ function computeToneCheck(texte, m){
   return { score, niveau, resume, ce_qui_correspond:pos.slice(0,3), ce_qui_ne_correspond_pas:negatifs.slice(0,3), version_corrigee:toneRewrite(texte,m) };
 }
 async function callToneCheck(texte, brandMemory){
-  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function sécurisée (clé API côté serveur, jamais ici) */ }
+  if(!DEMO_MODE){
+    try{ const d=await aiCall('tone',{ texte, brandMemory }); if(d&&typeof d.score!=='undefined') return d; }
+    catch(e){ console.warn('IA indisponible (tone) — repli simulation locale.',e); }
+  }
   await wait(900);
   return computeToneCheck(texte, brandMemory);
 }
@@ -3624,7 +3652,10 @@ function prefillGenerate(sujet,reseau){
 function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
 async function callExtract(contenu){
-  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function (vraie analyse Claude) */ }
+  if(!DEMO_MODE){
+    try{ return await aiCall('extract',{ contenu }); }
+    catch(e){ console.warn('IA indisponible (extract) — repli simulation locale.',e); }
+  }
   await wait(1400);
   return analyzeBrandText(contenu||'');
 }
@@ -3673,7 +3704,10 @@ function analyzeBrandText(text){
 }
 
 async function callGenerate(brand,sujet,format){
-  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function (appel Claude inchangé : [FORMAT]=format) */ }
+  if(!DEMO_MODE){
+    try{ const d=await aiCall('generate',{ brand, sujet, format }); if(d&&d.contenu) return d.contenu; }
+    catch(e){ console.warn('IA indisponible (generate) — repli simulation locale.',e); }
+  }
   await wait(1100);
   const m=brand.brand_memory||{};
   const cles=(m.mots_cles||[]).slice(0,3).join(', ');
@@ -3723,7 +3757,10 @@ async function callGenerate(brand,sujet,format){
 }
 
 async function callCalendar(brand,periode,reseaux,freq){
-  if(!DEMO_MODE){ /* TODO: fetch vers Edge Function */ }
+  if(!DEMO_MODE){
+    try{ const d=await aiCall('calendar',{ brand, periode, reseaux, freq }); if(d&&Array.isArray(d.items)&&d.items.length) return d.items; }
+    catch(e){ console.warn('IA indisponible (calendar) — repli simulation locale.',e); }
+  }
   await wait(1200);
   const count = freq==='quotidien' ? (periode==='mois'?20:7) : (periode==='mois'? (parseInt(freq)*4) : parseInt(freq));
   const sujets=[`Coulisses de ${brand.nom}`,'Une erreur fréquente à éviter','Témoignage client','Notre méthode en 3 étapes','Question à notre communauté','Tendance du secteur','Astuce concrète et actionnable','Notre vision sur l\'avenir du métier'];
