@@ -675,6 +675,38 @@
     .mo-item { opacity:1 !important; }
     .mo-parallax { transform: none !important; }
   }
+
+  /* ===== Analyse — performance réseaux ===== */
+  .net-tabs{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+  .net-tab{ display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border:1.5px solid var(--border); background:var(--white); border-radius:999px; font-size:13px; font-weight:600; color:var(--text-muted); cursor:pointer; transition:all .18s ease; }
+  .net-tab:hover{ border-color:var(--text-muted); color:var(--text-main); }
+  .net-tab.active{ border-color:var(--net,#8AA078); color:var(--text-main); background:var(--white); box-shadow:0 2px 7px rgba(0,0,0,.07); }
+  .net-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .an-kpi{ background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:18px 20px; }
+  .an-kpi-l{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.8px; color:var(--text-muted); margin-bottom:10px; }
+  .an-kpi-v{ font-size:30px; font-weight:700; color:var(--text-main); line-height:1.1; }
+  .an-kpi-s{ margin-top:4px; }
+  .an-net-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; margin-bottom:18px; }
+  .an-net-card{ background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:16px 18px; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; }
+  .an-net-card:hover{ transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.07); }
+  .an-net-metrics{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .an-net-metrics .an-m-v{ font-size:18px; }
+  .an-m-v{ font-size:22px; font-weight:700; color:var(--text-main); line-height:1.15; }
+  .an-m-l{ font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .an-detail-link{ font-size:12px; color:var(--text-muted); margin-top:12px; }
+  .an-net-card:hover .an-detail-link{ color:var(--text-main); }
+  .an-card{ background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:20px; margin-bottom:14px; }
+  .an-card-title{ font-size:13px; font-weight:600; color:var(--text-main); }
+  .an-stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:14px; }
+  .an-stat{ background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:16px 18px; }
+  .an-coherence{ border-left:3px solid var(--green); }
+  .an-coherence-empty{ color:var(--text-muted); }
+  .an-skel{ background:linear-gradient(90deg,#ECEDE6 25%,#F5F6F0 37%,#ECEDE6 63%); background-size:400% 100%; animation:anShimmer 1.3s ease infinite; border-radius:6px; }
+  .an-skel-sm{ height:11px; width:50%; margin-bottom:12px; }
+  .an-skel-md{ height:22px; width:75%; }
+  .an-skel-lg{ height:30px; width:60%; }
+  .an-skel-chart{ height:300px; width:100%; border-radius:10px; }
+  @keyframes anShimmer{ 0%{ background-position:100% 50%; } 100%{ background-position:0 50%; } }
 </style>
 </head>
 <body>
@@ -1019,8 +1051,8 @@
         <div id="panel-analytics" class="tab-panel">
           <div class="row" style="justify-content:space-between; align-items:flex-start; margin-bottom:24px; flex-wrap:wrap; gap:12px">
             <div>
-              <h3 style="margin-bottom:4px">Analyse des posts</h3>
-              <p class="small" id="analytics-brand-subtitle">Vue d'ensemble de votre production de contenu.</p>
+              <h3 style="margin-bottom:4px">Performance réseaux</h3>
+              <p class="small" id="analytics-brand-subtitle">Vos résultats réels par réseau social.</p>
             </div>
             <select id="analytics-period" onchange="loadAnalytics()" style="width:auto; min-width:170px">
               <option value="7">7 derniers jours</option>
@@ -1031,64 +1063,11 @@
             </select>
           </div>
 
-          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:20px" id="analytics-kpis">
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:18px 20px">
-              <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:10px">Posts générés</div>
-              <div id="kpi-total" style="font-size:32px; font-weight:700; color:var(--text-main)">—</div>
-              <div class="small" id="kpi-total-sub" style="margin-top:4px"></div>
-            </div>
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:18px 20px">
-              <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:10px">Canaux utilisés</div>
-              <div id="kpi-canaux" style="font-size:32px; font-weight:700; color:var(--text-main)">—</div>
-              <div class="small" id="kpi-canaux-sub" style="margin-top:4px"></div>
-            </div>
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:18px 20px">
-              <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:10px">Cohérence moyenne</div>
-              <div id="kpi-score" style="font-size:32px; font-weight:700; color:var(--green)">—</div>
-              <div class="small" style="margin-top:4px">Brand Memory</div>
-            </div>
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:18px 20px">
-              <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:10px">Cadence</div>
-              <div id="kpi-cadence" style="font-size:32px; font-weight:700; color:var(--text-main)">—</div>
-              <div class="small" style="margin-top:4px">posts / semaine</div>
-            </div>
-          </div>
+          <div id="analytics-net-tabs" class="net-tabs"></div>
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:20px" id="analytics-kpis"></div>
 
-          <div style="display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:20px" id="analytics-charts-row">
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:20px">
-              <div style="font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:16px">Volume de contenu dans le temps</div>
-              <div style="position:relative; height:200px"><canvas id="chart-volume"></canvas></div>
-            </div>
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:20px">
-              <div style="font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:16px">Répartition par canal</div>
-              <div style="position:relative; height:160px"><canvas id="chart-canaux"></canvas></div>
-              <div id="chart-canaux-legend" style="margin-top:12px; display:flex; flex-direction:column; gap:6px"></div>
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px" id="analytics-insights-row">
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:20px">
-              <div style="font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:16px">Mots les plus utilisés</div>
-              <div id="top-mots-list" style="display:flex; flex-direction:column; gap:8px"></div>
-            </div>
-            <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; padding:20px">
-              <div class="row" style="justify-content:space-between; margin-bottom:16px">
-                <div style="font-size:13px; font-weight:600; color:var(--text-main)">Analyse de votre contenu</div>
-                <button class="btn-secondary btn-sm" id="ai-analysis-btn" onclick="generateAIAnalysis()">✦ Analyser</button>
-              </div>
-              <div id="ai-analysis-content" class="small" style="line-height:1.7; white-space:pre-wrap">Cliquez sur « Analyser » pour obtenir des observations sur vos contenus générés.</div>
-            </div>
-          </div>
-
-          <div style="background:var(--white); border:1.5px solid var(--border); border-radius:12px; overflow:hidden">
-            <div style="padding:16px 20px; border-bottom:1.5px solid var(--border); font-size:13px; font-weight:600; color:var(--text-main)">Derniers posts générés</div>
-            <div style="overflow-x:auto">
-              <table class="admin-table" style="border:none; border-radius:0">
-                <thead><tr><th>Date</th><th>Canal</th><th>Sujet</th><th>Format</th><th>Mots</th></tr></thead>
-                <tbody id="analytics-posts-tbody"></tbody>
-              </table>
-            </div>
-          </div>
+          <div id="analytics-main"></div>
+          <div id="analytics-coherence" style="margin-top:14px"></div>
         </div>
 
         <!-- TAB: Tone of Voice Checker -->
@@ -1853,146 +1832,291 @@ function renderMemory(){
   if(typeof moStagger==='function'){ moStagger('#mem-display'); moStaggerMemoryTags(); }
 }
 
-/* ---- Analyse des posts (analytics) ---- */
-let analyticsChartVolume=null, analyticsChartCanaux=null;
-function aCanal(p){ return String(p.format||'Autre').split('—')[0].trim()||'Autre'; }
-function aCanalColor(c){
-  const map={'LinkedIn':'#185FA5','Instagram':'#C13584','Email':'#2D7A4F','X':'#1A1A1A','X / Twitter':'#1A1A1A','Facebook':'#1877F2'};
-  return map[c]||['#E8957A','#F5C800','#2D7A4F','#B8E8F0','#9B7ABF','#E07A5F'][Math.abs(c.split('').reduce((a,ch)=>a+ch.charCodeAt(0),0))%6];
+/* =========================================================================
+   ANALYSE — COUCHE DE DONNÉES (mock réaliste, isolée derrière une interface)
+   Pour brancher les vraies API, remplacer `mockNetworkMetrics` par les appels
+   réels dans analyticsProvider.getNetworkMetrics() — le reste du code ne bouge pas.
+   ========================================================================= */
+// PRNG déterministe (seedé par marque) → chiffres stables et crédibles d'une session à l'autre.
+function aHashSeed(str){ let h=2166136261>>>0; const s=String(str||'brandly'); for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function aMulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function aRange(rnd,r){ return r[0]+(r[1]-r[0])*rnd(); }
+function aIsoDaysAgo(n){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
+function aPeriodDays(period){ if(period==='all') return 90; const n=parseInt(period,10); return isFinite(n)?Math.min(n,365):30; }
+
+// Profils par réseau : bandes réalistes (impressions/jour, ratios d'engagement distincts).
+const NET_PROFILES={
+  instagram:{ label:'Instagram', color:'#C13584', impDay:[1800,4200], reachRatio:[0.55,0.80],
+    rLikes:[0.030,0.055], rComments:[0.002,0.006], rShares:[0.004,0.010], rSaves:[0.008,0.020], rClicks:[0.002,0.006] },
+  linkedin:{ label:'LinkedIn', color:'#185FA5', impDay:[900,2400], reachRatio:[0.60,0.85],
+    rLikes:[0.015,0.030], rComments:[0.003,0.008], rShares:[0.003,0.007], rSaves:[0.001,0.004], rClicks:[0.010,0.025] },
+  facebook:{ label:'Facebook', color:'#1877F2', impDay:[700,2000], reachRatio:[0.40,0.65],
+    rLikes:[0.010,0.022], rComments:[0.002,0.006], rShares:[0.004,0.010], rSaves:[0.000,0.002], rClicks:[0.004,0.010] },
+  x:{ label:'X', color:'#1A1A1A', impDay:[2500,6000], reachRatio:[0.70,0.95],
+    rLikes:[0.004,0.012], rComments:[0.0005,0.002], rShares:[0.002,0.006], rSaves:[0.000,0.001], rClicks:[0.001,0.004] }
+};
+const EMAIL_PROFILE={ label:'Email', color:'#2D7A4F', sendsDay:[200,600], openRate:[0.32,0.46], ctrOfOpens:[0.06,0.14], unsubRate:[0.001,0.004] };
+const ANALYTICS_NETS=['instagram','linkedin','facebook','x'];
+
+// Génère la série temporelle d'abord, puis agrège → totaux toujours cohérents avec la courbe.
+function mockNetworkMetrics(brandId, period){
+  const days=aPeriodDays(period), seed=aHashSeed(brandId), networks={};
+  ANALYTICS_NETS.forEach((key,idx)=>{
+    const p=NET_PROFILES[key], rnd=aMulberry32(seed+idx*99991+days*7);
+    const trend=-0.15+0.40*rnd();           // tendance -15 % à +25 % sur la fenêtre
+    const base=aRange(rnd,p.impDay);
+    const ts=[]; let impressions=0,reach=0,likes=0,comments=0,shares=0,saves=0,linkClicks=0;
+    for(let i=days-1;i>=0;i--){
+      const date=aIsoDaysAgo(i), t=(days-1-i)/Math.max(1,days-1);
+      const weekend=(new Date(date+'T00:00:00').getDay()%6===0)?0.82:1; // léger creux week-end
+      const imp=Math.max(1,Math.round(base*(1+trend*t)*weekend*(0.8+0.4*rnd())));
+      const rch=Math.round(imp*aRange(rnd,p.reachRatio));
+      const dL=Math.round(imp*aRange(rnd,p.rLikes)), dC=Math.round(imp*aRange(rnd,p.rComments));
+      const dS=Math.round(imp*aRange(rnd,p.rShares)), dSa=Math.round(imp*aRange(rnd,p.rSaves));
+      const dCl=Math.round(imp*aRange(rnd,p.rClicks)), eng=dL+dC+dS+dSa;
+      impressions+=imp; reach+=rch; likes+=dL; comments+=dC; shares+=dS; saves+=dSa; linkClicks+=dCl;
+      ts.push({ date, impressions:imp, engagement:eng });
+    }
+    const engTotal=likes+comments+shares+saves;
+    networks[key]={ key, label:p.label, color:p.color, impressions, reach, likes, comments, shares, saves,
+      linkClicks, engagementRate:impressions?+(engTotal/impressions*100).toFixed(2):0, timeseries:ts };
+  });
+  // Email à part (métriques propres : envois / ouvertures / clics, ~1 campagne / 3 jours)
+  const er=aMulberry32(seed+555), ets=[]; let sends=0,opens=0,clicks=0,unsub=0;
+  const oRate=aRange(er,EMAIL_PROFILE.openRate), ctrO=aRange(er,EMAIL_PROFILE.ctrOfOpens), uRate=aRange(er,EMAIL_PROFILE.unsubRate);
+  for(let i=days-1;i>=0;i--){
+    const date=aIsoDaysAgo(i);
+    if(i%3!==0){ ets.push({ date, opens:0, clicks:0 }); continue; }
+    const s=Math.round(aRange(er,EMAIL_PROFILE.sendsDay));
+    const o=Math.round(s*oRate*(0.85+0.3*er())), c=Math.round(o*ctrO*(0.85+0.3*er()));
+    sends+=s; opens+=o; clicks+=c; unsub+=Math.round(s*uRate);
+    ets.push({ date, opens:o, clicks:c });
+  }
+  const email={ key:'email', label:'Email', color:EMAIL_PROFILE.color, sends, opens, clicks,
+    openRate:sends?+(opens/sends*100).toFixed(1):0, ctr:opens?+(clicks/opens*100).toFixed(1):0, unsubscribes:unsub, timeseries:ets };
+  return { networks, email, period, generatedAt:new Date().toISOString() };
 }
-function destroyAnalyticsCharts(){
-  if(analyticsChartVolume){ analyticsChartVolume.destroy(); analyticsChartVolume=null; }
-  if(analyticsChartCanaux){ analyticsChartCanaux.destroy(); analyticsChartCanaux=null; }
-}
+
+const analyticsProvider={
+  // getNetworkMetrics({brandId, period}) -> { networks:{instagram,linkedin,facebook,x}, email, period }
+  async getNetworkMetrics({ brandId, period }){
+    // === BRANCHER L'API RÉELLE ICI (remplacer la ligne mock ci-dessous) ===
+    // Instagram → Meta Graph API : GET /{ig-user-id}/insights?metric=impressions,reach,saved,...&period=day
+    // Facebook  → Meta Graph API : GET /{page-id}/insights?metric=post_impressions,post_engaged_users,...
+    // LinkedIn  → LinkedIn Marketing API : GET /rest/organizationalEntityShareStatistics?q=organizationalEntity&...
+    // X         → X API v2 : GET /2/users/:id/tweets?tweet.fields=public_metrics,created_at
+    // Email     → ESP (Brevo/Mailchimp) : rapports de campagne (sends, opens, clicks)
+    // Idéalement via une Edge Function Supabase qui détient les tokens OAuth (jamais côté navigateur).
+    await wait(450); // simule la latence réseau (skeleton visible)
+    return mockNetworkMetrics(brandId, period);
+  }
+};
+
+/* ---- Analyse : rendu (vue comparée + filtre par réseau) ---- */
+let analyticsChart=null;
+function destroyAnalyticsCharts(){ if(analyticsChart){ analyticsChart.destroy(); analyticsChart=null; } }
+function aFmtNum(n){ n=Number(n)||0; if(n>=1000000) return (n/1000000).toFixed(1).replace('.0','')+'M'; if(n>=1000) return (n/1000).toFixed(1).replace('.0','')+'k'; return String(Math.round(n)); }
+function aFmtDate(d){ try{ return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }catch(e){ return d; } }
+
 async function loadAnalytics(){
   if(!state.selectedBrand) return;
+  state.analyticsNetwork=state.analyticsNetwork||'all';
   const period=document.getElementById('analytics-period').value;
-  const sub=document.getElementById('analytics-brand-subtitle'); if(sub) sub.textContent='Vue d\'ensemble · '+state.selectedBrand.nom;
-  let dateFrom=null;
-  if(period!=='all'){ const d=new Date(); d.setDate(d.getDate()-parseInt(period)); dateFrom=d.toISOString(); }
-  let posts=[];
-  try{
-    let q=db.from('generated_contents').select('*').eq('brand_id',state.selectedBrand.id).order('created_at',{ascending:true});
-    if(dateFrom) q=q.gte('created_at',dateFrom);
-    const { data, error }=await q; if(error) throw error; posts=data||[];
-  }catch(e){ posts=[]; }
-  renderKPIs(posts, period);
-  renderVolumeChart(posts);
-  renderCanauxChart(posts);
-  renderTopMots(posts);
-  renderPostsTable(posts);
+  const sub=document.getElementById('analytics-brand-subtitle'); if(sub) sub.textContent='Vos résultats réels par réseau · '+state.selectedBrand.nom;
+  renderNetTabs();
+  renderAnalyticsSkeleton();
+  let data=null;
+  try{ data=await analyticsProvider.getNetworkMetrics({ brandId:state.selectedBrand.id, period }); }catch(e){ data=null; }
+  state.analyticsData=data;
+  if(!data){ renderAnalyticsEmpty(); return; }
+  renderAnalytics();
 }
-function renderKPIs(posts, period){
-  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
-  const setN=(id,v)=>{ const el=document.getElementById(id); if(!el) return; if(typeof moCountUp==='function') moCountUp(el,String(v)); else el.textContent=v; };
-  setN('kpi-total', posts.length);
-  set('kpi-total-sub', period==='all'?'depuis le début':'sur '+period+' jours');
-  const canaux=Array.from(new Set(posts.map(aCanal)));
-  setN('kpi-canaux', canaux.length);
-  set('kpi-canaux-sub', canaux.join(', '));
-  const m=state.selectedBrand.brand_memory||{};
-  const withContent=posts.filter(p=>p.contenu);
-  if(withContent.length){
-    const avg=Math.round(withContent.reduce((s,p)=>s+computeCoherenceScore(p.contenu,m).score,0)/withContent.length);
-    setN('kpi-score', avg+'%');
-  } else set('kpi-score','—');
-  if(posts.length>=2){
-    const first=new Date(posts[0].created_at), last=new Date(posts[posts.length-1].created_at);
-    const weeks=Math.max(1,(last-first)/(7*24*3600*1000));
-    setN('kpi-cadence',(posts.length/weeks).toFixed(1));
-  } else setN('kpi-cadence', String(posts.length));
+function renderAnalytics(){
+  renderNetTabs();
+  renderAnalyticsSynthKPIs();
+  const net=state.analyticsNetwork;
+  if(net==='all') renderAnalyticsCompare();
+  else if(net==='email') renderAnalyticsEmail();
+  else renderAnalyticsNetwork(net);
+  renderCoherenceCard();
+}
+function setAnalyticsNetwork(key){
+  state.analyticsNetwork=key;
+  destroyAnalyticsCharts();
+  if(!state.analyticsData){ loadAnalytics(); return; }
+  renderAnalytics();
+}
+function renderNetTabs(){
+  const host=document.getElementById('analytics-net-tabs'); if(!host) return;
+  const tabs=[{key:'all',label:'Tous',color:'#8AA078'}]
+    .concat(ANALYTICS_NETS.map(k=>({key:k,label:NET_PROFILES[k].label,color:NET_PROFILES[k].color})))
+    .concat([{key:'email',label:'Email',color:EMAIL_PROFILE.color}]);
+  const cur=state.analyticsNetwork||'all';
+  host.innerHTML=tabs.map(t=>`<button class="net-tab${t.key===cur?' active':''}" onclick="setAnalyticsNetwork('${t.key}')"${t.key===cur?` style="--net:${t.color}"`:''}>
+    <span class="net-dot" style="background:${t.color}"></span>${escapeHtml(t.label)}</button>`).join('');
+}
+function aKpiCard(label,value,sub,accent){
+  return `<div class="an-kpi"${accent?` style="border-top:3px solid ${accent}"`:''}>
+    <div class="an-kpi-l">${escapeHtml(label)}</div>
+    <div class="an-kpi-v"${accent?` style="color:${accent}"`:''}>${value}</div>
+    <div class="small an-kpi-s">${sub||''}</div></div>`;
+}
+function renderAnalyticsSynthKPIs(){
+  const host=document.getElementById('analytics-kpis'); if(!host) return;
+  const d=state.analyticsData, net=state.analyticsNetwork, socials=ANALYTICS_NETS.map(k=>d.networks[k]);
+  if(net==='all'){
+    const impSocial=socials.reduce((s,n)=>s+n.impressions,0);
+    const totalClicks=socials.reduce((s,n)=>s+n.linkClicks,0)+d.email.clicks;
+    const avgEng=+(socials.reduce((s,n)=>s+n.engagementRate,0)/socials.length).toFixed(2);
+    const best=socials.slice().sort((a,b)=>b.engagementRate-a.engagementRate)[0];
+    host.innerHTML=aKpiCard('Impressions totales',aFmtNum(impSocial),'tous réseaux sociaux')
+      +aKpiCard('Engagement moyen',avgEng+' %','moyenne des réseaux')
+      +aKpiCard('Clics totaux',aFmtNum(totalClicks),'liens + email')
+      +aKpiCard('Meilleur réseau',best.label,best.engagementRate+' % d\'engagement',best.color);
+  } else if(net==='email'){
+    const e=d.email;
+    host.innerHTML=aKpiCard('Emails envoyés',aFmtNum(e.sends),'sur la période',e.color)
+      +aKpiCard('Taux d\'ouverture',e.openRate+' %',aFmtNum(e.opens)+' ouvertures')
+      +aKpiCard('Taux de clic (CTR)',e.ctr+' %',aFmtNum(e.clicks)+' clics')
+      +aKpiCard('Désabonnements',aFmtNum(e.unsubscribes),'');
+  } else {
+    const n=d.networks[net];
+    host.innerHTML=aKpiCard('Impressions',aFmtNum(n.impressions),'',n.color)
+      +aKpiCard('Reach',aFmtNum(n.reach),n.impressions?Math.round(n.reach/n.impressions*100)+' % des impressions':'')
+      +aKpiCard('Engagement',n.engagementRate+' %',aFmtNum(n.likes+n.comments+n.shares+n.saves)+' interactions')
+      +aKpiCard('Clics liens',aFmtNum(n.linkClicks),'');
+  }
   if(typeof moStagger==='function') moStagger('#analytics-kpis');
 }
-function renderVolumeChart(posts){
-  const cv=document.getElementById('chart-volume'); if(!cv || typeof Chart==='undefined') return;
-  const byDay={}; posts.forEach(p=>{ const d=String(p.created_at||'').slice(0,10); if(d) byDay[d]=(byDay[d]||0)+1; });
-  const labels=Object.keys(byDay).sort();
-  const values=labels.map(d=>byDay[d]);
-  if(analyticsChartVolume) analyticsChartVolume.destroy();
-  analyticsChartVolume=new Chart(cv.getContext('2d'),{
-    type:'bar',
-    data:{ labels:labels.map(d=>new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'})),
-      datasets:[{ data:values, backgroundColor:'rgba(138,160,120,0.7)', borderColor:'#8AA078', borderWidth:1, borderRadius:4 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-      scales:{ y:{beginAtZero:true, ticks:{stepSize:1, color:'#6B7B6E'}, grid:{color:'#E8E8D8'}},
-        x:{ticks:{color:'#6B7B6E', maxRotation:0, autoSkip:true}, grid:{display:false}} } }
-  });
+function renderAnalyticsCompare(){
+  const host=document.getElementById('analytics-main'); if(!host) return;
+  const socials=ANALYTICS_NETS.map(k=>state.analyticsData.networks[k]);
+  const cards=socials.map(n=>`<div class="an-net-card" style="border-left:4px solid ${n.color}" onclick="setAnalyticsNetwork('${n.key}')" role="button" tabindex="0">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px"><span class="net-dot" style="background:${n.color}"></span><strong>${escapeHtml(n.label)}</strong></div>
+      <span class="badge" style="background:${n.color}1f;color:${n.color}">${n.engagementRate}%</span>
+    </div>
+    <div class="an-net-metrics">
+      <div><div class="an-m-v">${aFmtNum(n.impressions)}</div><div class="an-m-l">Impressions</div></div>
+      <div><div class="an-m-v">${aFmtNum(n.reach)}</div><div class="an-m-l">Reach</div></div>
+      <div><div class="an-m-v">${aFmtNum(n.linkClicks)}</div><div class="an-m-l">Clics</div></div>
+    </div>
+    <div class="an-detail-link">Voir le détail →</div></div>`).join('');
+  host.innerHTML=`<div class="an-net-grid">${cards}</div>
+    <div class="an-card">
+      <div class="row" style="justify-content:space-between;margin-bottom:16px"><div class="an-card-title">Impressions par réseau dans le temps</div><div class="small">comparatif</div></div>
+      <div style="position:relative;height:300px"><canvas id="analytics-canvas"></canvas></div>
+    </div>`;
+  renderCompareChart(socials);
+  if(typeof moStagger==='function') moStagger('.an-net-grid');
 }
-function renderCanauxChart(posts){
-  const cc=document.getElementById('chart-canaux'); const legend=document.getElementById('chart-canaux-legend');
-  if(!cc || typeof Chart==='undefined') return;
-  const count={}; posts.forEach(p=>{ const c=aCanal(p); count[c]=(count[c]||0)+1; });
-  const labels=Object.keys(count), values=labels.map(l=>count[l]), colors=labels.map(aCanalColor);
-  if(analyticsChartCanaux) analyticsChartCanaux.destroy();
-  if(!labels.length){ if(legend) legend.innerHTML='<div class="small">Aucune donnée.</div>'; return; }
-  analyticsChartCanaux=new Chart(cc.getContext('2d'),{
-    type:'doughnut',
-    data:{ labels, datasets:[{ data:values, backgroundColor:colors, borderWidth:0 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, cutout:'65%' }
-  });
-  if(legend) legend.innerHTML=labels.map((l,i)=>`<div style="display:flex; align-items:center; gap:8px; font-size:12px">
-    <div style="width:10px; height:10px; border-radius:50%; background:${colors[i]}; flex-shrink:0"></div>
-    <span style="color:var(--text-main)">${escapeHtml(l)}</span>
-    <span style="margin-left:auto; color:var(--text-muted)">${values[i]}</span></div>`).join('');
+function renderCompareChart(socials){
+  const cv=document.getElementById('analytics-canvas'); if(!cv||typeof Chart==='undefined') return;
+  destroyAnalyticsCharts();
+  const labels=socials[0].timeseries.map(p=>aFmtDate(p.date));
+  const datasets=socials.map(n=>({ label:n.label, data:n.timeseries.map(p=>p.impressions),
+    borderColor:n.color, backgroundColor:n.color+'22', borderWidth:2, tension:0.35, pointRadius:0, fill:false }));
+  analyticsChart=new Chart(cv.getContext('2d'),{ type:'line', data:{ labels, datasets },
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:true,position:'bottom',labels:{color:'#6B7B6E',usePointStyle:true,boxWidth:8,padding:14}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+' : '+aFmtNum(c.parsed.y)+' impressions'}} },
+      scales:{ y:{beginAtZero:true,ticks:{color:'#6B7B6E',callback:v=>aFmtNum(v)},grid:{color:'#E8E8D8'}},
+        x:{ticks:{color:'#6B7B6E',maxRotation:0,autoSkip:true,maxTicksLimit:8},grid:{display:false}} } } });
 }
-const ANALYTICS_STOP=new Set(['le','la','les','de','du','des','un','une','et','en','au','aux','qui','que','dans','sur','pour','par','avec','est','sont','être','avoir','nous','vous','ils','elles','ce','se','si','ne','pas','plus','tout','tous','bien','mais','ou','donc','car','mon','ma','mes','ton','ta','tes','son','sa','ses','notre','votre','vos','leur','leurs','cela','cette','ces','cet','votre','comme','sans','vos','fait','faire','aussi','entre','chez','votre']);
-function renderTopMots(posts){
-  const list=document.getElementById('top-mots-list'); if(!list) return;
-  const wc={};
-  posts.forEach(p=>{
-    (String(p.contenu||'').toLowerCase().match(/[a-zàâäéèêëïîôöùûüÿçœ]{5,}/g)||[]).forEach(w=>{ if(!ANALYTICS_STOP.has(w)) wc[w]=(wc[w]||0)+1; });
-  });
-  const top=Object.entries(wc).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  if(!top.length){ list.innerHTML='<div class="small">Aucun contenu analysé.</div>'; return; }
-  const max=top[0][1]||1; const e=escapeHtml;
-  list.innerHTML=top.map(([mot,c])=>`<div style="display:flex; align-items:center; gap:10px">
-    <div style="font-size:13px; color:var(--text-main); width:110px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${e(mot)}</div>
-    <div style="flex:1; height:6px; background:var(--border); border-radius:3px; overflow:hidden"><div style="height:100%; width:${Math.round(c/max*100)}%; background:var(--green); border-radius:3px"></div></div>
-    <div style="font-size:12px; color:var(--text-muted); width:24px; text-align:right">${c}</div></div>`).join('');
+function renderAnalyticsNetwork(key){
+  const host=document.getElementById('analytics-main'); if(!host) return;
+  const n=state.analyticsData.networks[key]; if(!n){ host.innerHTML=''; return; }
+  const stat=(v,l,col)=>`<div class="an-stat"><div class="an-m-v"${col?` style="color:${col}"`:''}>${v}</div><div class="an-m-l">${l}</div></div>`;
+  host.innerHTML=`<div class="an-stats-grid">
+      ${stat(aFmtNum(n.impressions),'Impressions')}${stat(aFmtNum(n.reach),'Reach')}
+      ${stat(aFmtNum(n.likes),'Likes')}${stat(aFmtNum(n.comments),'Commentaires')}
+      ${stat(aFmtNum(n.shares),'Partages')}${stat(aFmtNum(n.saves),'Enregistrements')}
+      ${stat(aFmtNum(n.linkClicks),'Clics liens')}${stat(n.engagementRate+'%','Taux d\'engagement',n.color)}
+    </div>
+    <div class="an-card">
+      <div class="an-card-title" style="margin-bottom:16px">${escapeHtml(n.label)} — impressions & engagement</div>
+      <div style="position:relative;height:300px"><canvas id="analytics-canvas"></canvas></div>
+    </div>`;
+  renderNetworkChart(n);
+  if(typeof moStagger==='function') moStagger('.an-stats-grid');
 }
-function renderPostsTable(posts){
-  const tb=document.getElementById('analytics-posts-tbody'); if(!tb) return;
-  const recent=[...posts].reverse().slice(0,10); const e=escapeHtml;
-  if(!recent.length){ tb.innerHTML='<tr><td colspan="5" style="padding:20px; text-align:center" class="small">Aucun contenu généré pour cette période.</td></tr>'; return; }
-  tb.innerHTML=recent.map(p=>{
-    let d=p.created_at; try{ d=new Date(p.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }catch(x){}
-    const canal=aCanal(p);
-    const fmt=(String(p.format||'').split('—')[1]||'—').trim()||'—';
-    const mots=String(p.contenu||'').split(/\s+/).filter(Boolean).length;
-    return `<tr><td>${e(d||'—')}</td><td><span class="badge">${e(canal)}</span></td><td>${e((p.sujet||'—').slice(0,45))}</td><td class="small">${e(fmt)}</td><td>${mots}</td></tr>`;
-  }).join('');
+function renderNetworkChart(n){
+  const cv=document.getElementById('analytics-canvas'); if(!cv||typeof Chart==='undefined') return;
+  destroyAnalyticsCharts();
+  const labels=n.timeseries.map(p=>aFmtDate(p.date));
+  analyticsChart=new Chart(cv.getContext('2d'),{ type:'line',
+    data:{ labels, datasets:[
+      { label:'Impressions', data:n.timeseries.map(p=>p.impressions), borderColor:n.color, backgroundColor:n.color+'22', borderWidth:2, tension:0.35, pointRadius:0, fill:true, yAxisID:'y' },
+      { label:'Engagement', data:n.timeseries.map(p=>p.engagement), borderColor:'#E8957A', backgroundColor:'transparent', borderWidth:2, tension:0.35, pointRadius:0, borderDash:[4,3], yAxisID:'y1' } ] },
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:true,position:'bottom',labels:{color:'#6B7B6E',usePointStyle:true,boxWidth:8,padding:14}} },
+      scales:{ y:{beginAtZero:true,position:'left',ticks:{color:'#6B7B6E',callback:v=>aFmtNum(v)},grid:{color:'#E8E8D8'},title:{display:true,text:'Impressions',color:'#6B7B6E'}},
+        y1:{beginAtZero:true,position:'right',ticks:{color:'#E8957A',callback:v=>aFmtNum(v)},grid:{display:false},title:{display:true,text:'Engagement',color:'#E8957A'}},
+        x:{ticks:{color:'#6B7B6E',maxRotation:0,autoSkip:true,maxTicksLimit:8},grid:{display:false}} } } });
 }
-// Analyse locale des tendances (honnête : observations sur tes propres données, pas de génération IA)
-async function generateAIAnalysis(){
-  if(!state.selectedBrand) return;
-  const btn=document.getElementById('ai-analysis-btn'); const content=document.getElementById('ai-analysis-content');
-  if(btn){ btn.disabled=true; btn.textContent='…'; } if(content) content.textContent='Analyse en cours…';
-  await wait(500);
+function renderAnalyticsEmail(){
+  const host=document.getElementById('analytics-main'); if(!host) return;
+  const e=state.analyticsData.email;
+  const stat=(v,l,col)=>`<div class="an-stat"><div class="an-m-v"${col?` style="color:${col}"`:''}>${v}</div><div class="an-m-l">${l}</div></div>`;
+  host.innerHTML=`<div class="an-stats-grid">
+      ${stat(aFmtNum(e.sends),'Emails envoyés',e.color)}${stat(aFmtNum(e.opens),'Ouvertures')}
+      ${stat(e.openRate+' %','Taux d\'ouverture')}${stat(aFmtNum(e.clicks),'Clics')}
+      ${stat(e.ctr+' %','CTR')}${stat(aFmtNum(e.unsubscribes),'Désabonnements')}
+    </div>
+    <div class="an-card">
+      <div class="an-card-title" style="margin-bottom:16px">Email — ouvertures & clics par campagne</div>
+      <div style="position:relative;height:300px"><canvas id="analytics-canvas"></canvas></div>
+    </div>`;
+  renderEmailChart(e);
+  if(typeof moStagger==='function') moStagger('.an-stats-grid');
+}
+function renderEmailChart(e){
+  const cv=document.getElementById('analytics-canvas'); if(!cv||typeof Chart==='undefined') return;
+  destroyAnalyticsCharts();
+  const pts=e.timeseries.filter(p=>p.opens>0);
+  if(!pts.length){ return; }
+  analyticsChart=new Chart(cv.getContext('2d'),{ type:'bar',
+    data:{ labels:pts.map(p=>aFmtDate(p.date)), datasets:[
+      { label:'Ouvertures', data:pts.map(p=>p.opens), backgroundColor:e.color+'cc', borderRadius:4 },
+      { label:'Clics', data:pts.map(p=>p.clicks), backgroundColor:'#E8957A', borderRadius:4 } ] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:true,position:'bottom',labels:{color:'#6B7B6E',usePointStyle:true,boxWidth:8,padding:14}} },
+      scales:{ y:{beginAtZero:true,ticks:{color:'#6B7B6E',callback:v=>aFmtNum(v)},grid:{color:'#E8E8D8'}},
+        x:{ticks:{color:'#6B7B6E',maxRotation:0,autoSkip:true,maxTicksLimit:10},grid:{display:false}} } } });
+}
+// Second plan : cohérence Brand Memory (vraies données generated_contents) — angle différenciant.
+async function renderCoherenceCard(){
+  const host=document.getElementById('analytics-coherence'); if(!host) return;
+  host.innerHTML='<div class="an-card an-coherence"><div class="an-coherence-empty small">Cohérence Brand Memory…</div></div>';
   let posts=[];
-  try{ const r=await db.from('generated_contents').select('*').eq('brand_id',state.selectedBrand.id).order('created_at',{ascending:false}).limit(40); if(r.error) throw r.error; posts=r.data||[]; }catch(e){ posts=[]; }
-  if(posts.length<3){ if(content) content.textContent='Pas assez de données pour analyser. Générez au moins 3 posts.'; if(btn){ btn.disabled=false; btn.textContent='✦ Analyser'; } return; }
-  // Thèmes récurrents (mots des sujets)
-  const themes={};
-  posts.forEach(p=>{ (String(p.sujet||'').toLowerCase().match(/[a-zàâäéèêëïîôöùûüÿçœ]{5,}/g)||[]).forEach(w=>{ if(!ANALYTICS_STOP.has(w)) themes[w]=(themes[w]||0)+1; }); });
-  const topThemes=Object.entries(themes).sort((a,b)=>b[1]-a[1]).slice(0,3).map(t=>t[0]);
-  // Diversité des canaux
-  const cc={}; posts.forEach(p=>{ const c=aCanal(p); cc[c]=(cc[c]||0)+1; });
-  const canaux=Object.entries(cc).sort((a,b)=>b[1]-a[1]);
-  const dominant=canaux[0]; const partDominante=Math.round(dominant[1]/posts.length*100);
-  // Régularité
-  const dates=posts.map(p=>new Date(p.created_at)).filter(d=>!isNaN(d)).sort((a,b)=>a-b);
-  let cadence='—';
-  if(dates.length>=2){ const weeks=Math.max(1,(dates[dates.length-1]-dates[0])/(7*24*3600*1000)); cadence=(posts.length/weeks).toFixed(1); }
-  // Cohérence moyenne
-  const m=state.selectedBrand.brand_memory||{};
-  const avgScore=Math.round(posts.filter(p=>p.contenu).reduce((s,p)=>s+computeCoherenceScore(p.contenu,m).score,0)/Math.max(1,posts.filter(p=>p.contenu).length));
-  const lignes=[];
-  lignes.push('• Thèmes récurrents : '+(topThemes.length?topThemes.join(', '):'sujets variés, pas de thème dominant')+'.');
-  lignes.push('• Canaux : '+canaux.length+' utilisé(s). '+(canaux.length===1?('100 % sur '+dominant[0]+' — pensez à diversifier (Instagram, Email…).'):(partDominante>=60?(dominant[0]+' domine ('+partDominante+' %) — équilibrez davantage les autres canaux.'):'bonne répartition entre canaux.')));
-  lignes.push('• Régularité : ~'+cadence+' post(s)/semaine.'+(parseFloat(cadence)<1?' Augmentez la cadence pour rester visible.':' Bon rythme, gardez-le.'));
-  lignes.push('• Cohérence Brand Memory : '+avgScore+'% en moyenne.'+(avgScore<71?' Réutilisez davantage vos mots-clés de marque.':' Vos contenus respectent bien votre identité.'));
-  if(content) content.textContent=lignes.join('\n');
-  if(btn){ btn.disabled=false; btn.textContent='✦ Analyser'; }
+  try{ const r=await db.from('generated_contents').select('contenu').eq('brand_id',state.selectedBrand.id).limit(60); if(!r.error) posts=r.data||[]; }catch(e){}
+  const m=state.selectedBrand.brand_memory||{}, withC=posts.filter(p=>p.contenu);
+  let inner;
+  if(!withC.length){
+    inner='<div class="an-coherence-empty small">Cohérence Brand Memory — générez du contenu pour activer cette mesure différenciante.</div>';
+  } else {
+    const avg=Math.round(withC.reduce((s,p)=>s+computeCoherenceScore(p.contenu,m).score,0)/withC.length);
+    const col=avg>=86?'#2D7A4F':avg>=71?'#8AA078':avg>=51?'#F59E0B':'#F87171';
+    inner=`<div class="row" style="gap:16px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px"><div class="an-kpi-l">Cohérence Brand Memory</div>
+        <div class="small" style="margin-top:2px">Votre angle différenciant — alignement moyen de vos ${withC.length} contenus avec la voix de marque.</div></div>
+      <div style="font-size:30px;font-weight:700;color:${col}">${avg}%</div></div>`;
+  }
+  host.innerHTML='<div class="an-card an-coherence">'+inner+'</div>';
+}
+function renderAnalyticsSkeleton(){
+  destroyAnalyticsCharts();
+  const k=document.getElementById('analytics-kpis');
+  if(k) k.innerHTML=Array(4).fill('<div class="an-kpi"><div class="an-skel an-skel-sm"></div><div class="an-skel an-skel-lg"></div></div>').join('');
+  const main=document.getElementById('analytics-main');
+  if(main) main.innerHTML='<div class="an-net-grid">'+Array(4).fill('<div class="an-net-card"><div class="an-skel an-skel-sm"></div><div class="an-skel an-skel-md"></div></div>').join('')+'</div><div class="an-card"><div class="an-skel an-skel-chart"></div></div>';
+  const co=document.getElementById('analytics-coherence'); if(co) co.innerHTML='';
+}
+function renderAnalyticsEmpty(){
+  const k=document.getElementById('analytics-kpis'); if(k) k.innerHTML='';
+  const co=document.getElementById('analytics-coherence'); if(co) co.innerHTML='';
+  const main=document.getElementById('analytics-main');
+  if(main) main.innerHTML='<div class="an-card" style="text-align:center;padding:48px 20px"><div style="font-size:30px;margin-bottom:8px">📊</div><div style="font-weight:600;color:var(--text-main);margin-bottom:4px">Pas de données pour cette période</div><div class="small">Connectez vos réseaux ou élargissez la période.</div></div>';
 }
 
 /* ---- Navigation par canal (sidebar) ---- */

@@ -64,6 +64,15 @@ libre). La photo est mémorisée avec le post (`generated_contents.image`).
    le **Calendrier éditorial**. Cliquer sur un canal ouvre une vue dédiée avec
    des **pills de formats** (un seul format actif à la fois) ; la génération
    réutilise `generateFormats()` → `callGenerate()` (logique inchangée).
+   La section **Analyse** (`#panel-analytics`) montre la **performance réseau réelle**
+   (impressions, reach, engagement, clics par réseau) : KPI synthétiques + vue
+   comparée (cartes par réseau + courbes multi-séries) et filtre par réseau
+   (Tous / Instagram / LinkedIn / Facebook / X / Email — Email a ses propres
+   métriques : envois, ouvertures, clics, CTR). La cohérence Brand Memory est
+   conservée en second plan (angle différenciant). Données via `analyticsProvider`
+   (mock réaliste, déterministe, structuré comme Meta Graph / LinkedIn Marketing) :
+   remplacer `mockNetworkMetrics` par les vrais appels sans toucher au reste.
+   Charts : **Chart.js 4.4.1** (CDN).
 4. **Éditeur de marque** — assistant en 3 étapes :
    - Étape 1 : infos de base (nom, secteur, site, couleur).
    - Étape 2 : **upload de documents** par drag & drop (.pdf, .doc, .docx, .txt,
