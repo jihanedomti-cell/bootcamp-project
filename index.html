@@ -604,7 +604,7 @@
   @keyframes moFadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
   @keyframes moFadeIn { from { opacity:0; } to { opacity:1; } }
   @keyframes moBadgePulse { 0%,80%,100%{ transform:scale(1); } 88%{ transform:scale(1.18); } 94%{ transform:scale(.97); } }
-  @keyframes moDrift { 0%{ transform:translate3d(-2%,-1%,0) scale(1.06); } 50%{ transform:translate3d(2%,1.6%,0) scale(1.12); } 100%{ transform:translate3d(-2%,-1%,0) scale(1.06); } }
+  @keyframes moDrift { 0%{ transform:translate3d(-0.8%,-0.6%,0); } 50%{ transform:translate3d(0.8%,0.6%,0); } 100%{ transform:translate3d(-0.8%,-0.6%,0); } }
   @keyframes moCheckPop { 0%{ transform:scale(.4); opacity:0; } 55%{ transform:scale(1.12); } 100%{ transform:scale(1); opacity:1; } }
 
   /* Entrée de vue (crossfade, jamais de flash blanc) */
@@ -658,10 +658,10 @@
   /* Fond légèrement vivant (dérive très lente, quasi imperceptible) */
   #view-dashboard .main { position: relative; }
   #view-dashboard .main::before {
-    content:''; position:absolute; inset:0; z-index:0; pointer-events:none;
-    background: radial-gradient(55% 45% at 22% 18%, rgba(126,149,128,0.10), transparent 60%),
-                radial-gradient(45% 40% at 82% 82%, rgba(193,131,94,0.06), transparent 60%);
-    animation: moDrift 60s ease-in-out infinite;
+    content:''; position:absolute; inset:-20%; z-index:0; pointer-events:none;
+    background: radial-gradient(70% 60% at 25% 20%, rgba(126,149,128,0.05), transparent 72%),
+                radial-gradient(60% 55% at 80% 85%, rgba(193,131,94,0.03), transparent 72%);
+    animation: moDrift 90s ease-in-out infinite;
   }
   #view-dashboard .main > * { position: relative; z-index: 1; }
 
